@@ -1,5 +1,5 @@
 // Configuration - Load from config.js injected variables, fallback to localhost
-const API_BASE = (typeof window.CONFIG !== 'undefined' && window.CONFIG.API_BASE) ? window.CONFIG.API_BASE : "http://localhost:8000";
+const API_BASE = window.CONFIG.API_BASE;
 
 // State
 let currentSound = null;
