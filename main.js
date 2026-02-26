@@ -7,6 +7,13 @@ let isPlaying = false;
 let audioBlobs = { v1: null, v2: null, v3: null, v4: null };
 let activeVersion = null;
 
+// Tempo presets for both preview and server request
+const speedMap = {
+    Slow: 0.8,
+    Normal: 1.0,
+    Fast: 1.2
+};
+
 // Initialize Lucide Icons
 lucide.createIcons();
 
@@ -300,24 +307,89 @@ skipNextBtn.addEventListener('click', () => {
     }
 });
 
-// Download Control
-downloadBtn.addEventListener('click', () => {
+// modal helpers
+const speedModal = document.getElementById('speed-modal');
+const speedForm = document.getElementById('speed-form');
+const speedDownloadBtn = document.getElementById('speed-download-btn');
+const speedCancelBtn = document.getElementById('speed-cancel-btn');
+
+function openSpeedModal() {
     if (!activeVersion || !audioBlobs[activeVersion]) return;
+    // reset checkboxes
+    speedForm.reset();
+    speedModal.classList.remove('hidden');
+    // start playback if not already playing so preview has audio
+    if (currentSound && !isPlaying) {
+        currentSound.play();
+    }
+}
 
-    const blob = audioBlobs[activeVersion];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+function closeSpeedModal() {
+    speedModal.classList.add('hidden');
+    // restore normal rate if we changed it
+    if (currentSound) currentSound.rate(1.0);
+}
 
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `woom_music_${activeVersion}.mp3`;
-
-    document.body.appendChild(a);
-    a.click();
-
-    // Clean up
-    window.setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    }, 100);
+// allow preview by selecting tempo (radio button = always one)
+speedForm.addEventListener('change', () => {
+    if (!currentSound) return;
+    const checked = speedForm.elements['speed'].value;
+    const rate = speedMap[checked] || 1.0;
+    currentSound.rate(rate);
 });
+
+// hook up cancel button
+speedCancelBtn.addEventListener('click', closeSpeedModal);
+
+// handle download click inside modal
+speedDownloadBtn.addEventListener('click', async () => {
+    const chosen = speedForm.elements['speed'].value; // radio button = single value
+    if (!chosen) {
+        alert('Please choose a tempo.');
+        return;
+    }
+
+    // send blob and speed to server
+    const blob = audioBlobs[activeVersion];
+    const formData = new FormData();
+    formData.append('file', blob, `${activeVersion}.mp3`);
+    formData.append('speeds', chosen); // single speed now
+
+    try {
+        speedDownloadBtn.disabled = true;
+        statusText.innerText = '⏳ Adjusting tempo...';
+        const resp = await fetch(`${API_BASE}/adjust-bpm`, { method: 'POST', body: formData });
+        if (!resp.ok) throw new Error('Server error adjusting tempo');
+        const resultBlob = await resp.blob();
+
+        // unzip using JSZip and trigger download
+        const jszip = new JSZip();
+        const zip = await jszip.loadAsync(resultBlob);
+        for (const filename of Object.keys(zip.files)) {
+            const fileBlob = await zip.file(filename).async('blob');
+            const url = URL.createObjectURL(fileBlob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+        statusText.innerText = '';
+        // delay close to ensure download fully initiated
+        setTimeout(closeSpeedModal, 500);
+    } catch (e) {
+        console.error(e);
+        statusText.innerText = '❌ Tempo adjustment failed.';
+        closeSpeedModal();
+    } finally {
+        speedDownloadBtn.disabled = false;
+    }
+});
+
+// wire up original download button to open modal
+downloadBtn.addEventListener('click', openSpeedModal);
