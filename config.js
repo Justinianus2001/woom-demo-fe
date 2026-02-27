@@ -1,3 +1,3 @@
 window.CONFIG = {
-    API_BASE: "http://woom-music.nomad.id.vn"
+    API_BASE: "https://woom-music.nomad.id.vn"
 };
