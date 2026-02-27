@@ -14,6 +14,13 @@ const speedMap = {
   Fast: 1.2
 };
 
+function formatTime(secs) {
+  if (isNaN(secs)) return '0:00';
+  const minutes = Math.floor(secs / 60) || 0;
+  const seconds = Math.floor(secs % 60) || 0;
+  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
 // Initialize Lucide Icons
 lucide.createIcons();
 
@@ -26,6 +33,12 @@ const statusText = document.getElementById('status-text');
 const progressBar = document.getElementById('progress-bar');
 const progressFill = document.getElementById('progress-fill');
 const progressText = document.getElementById('progress-text');
+
+// Player Elements
+const currentTimeEl = document.getElementById('current-time');
+const totalTimeEl = document.getElementById('total-time');
+const playerProgressBar = document.getElementById('player-progress-bar');
+const closePlayerBtn = document.getElementById('close-player-btn');
 const mixGrid = document.getElementById('mix-grid');
 const playerBar = document.getElementById('player-bar');
 const playPauseBtn = document.getElementById('play-pause-btn');
@@ -36,6 +49,8 @@ const skipNextBtn = document.getElementById('skip-next-btn');
 const downloadBtn = document.getElementById('download-btn');
 const previewTrackBtn = document.getElementById('preview-track-btn');
 const previewIcon = document.getElementById('preview-icon');
+
+console.log('Main.js: UI elements initialized. DownloadBtn:', downloadBtn);
 
 let previewSound = null;
 let isPreviewing = false;
@@ -123,6 +138,24 @@ const loadTracks = async () => {
     trackSelect.innerHTML = '<option>Error loading tracks</option>';
   }
 };
+
+function updateProgress() {
+  if (currentSound && isPlaying) {
+    if (!isDraggingProgress) {
+      let seek = currentSound.seek() || 0;
+      if (typeof seek !== 'number') seek = 0;
+
+      currentTimeEl.innerText = formatTime(seek);
+      if (currentSound.duration()) {
+        playerProgressBar.value = (seek / currentSound.duration()) * 100 || 0;
+      }
+    }
+    progressAnimFrame = requestAnimationFrame(updateProgress);
+  }
+}
+
+let progressAnimFrame;
+let isDraggingProgress = false;
 
 // Server Healthcheck
 const checkServerHealth = async () => {
@@ -379,31 +412,52 @@ function playMix(version, cardElement) {
 
   currentSound.play();
   activeVersion = version;
+
+  // Reset Progress UI
+  playerProgressBar.value = 0;
+  currentTimeEl.innerText = '0:00';
+  totalTimeEl.innerText = '0:00';
+  if (progressAnimFrame) cancelAnimationFrame(progressAnimFrame);
+
+  currentSound.on('load', () => {
+    totalTimeEl.innerText = formatTime(currentSound.duration());
+  });
+
+  currentSound.on('play', () => {
+    progressAnimFrame = requestAnimationFrame(updateProgress);
+    totalTimeEl.innerText = formatTime(currentSound.duration());
+  });
 }
 
 // Player Controls
-progressBar.addEventListener('mousedown', () => isDraggingProgress = true);
-progressBar.addEventListener('touchstart', () => isDraggingProgress = true);
-progressBar.addEventListener('mouseup', () => isDraggingProgress = false);
-progressBar.addEventListener('touchend', () => isDraggingProgress = false);
+playerProgressBar.addEventListener('mousedown', () => isDraggingProgress = true);
+playerProgressBar.addEventListener('touchstart', () => isDraggingProgress = true);
+playerProgressBar.addEventListener('mouseup', () => isDraggingProgress = false);
+playerProgressBar.addEventListener('touchend', () => isDraggingProgress = false);
 
-progressBar.addEventListener('input', (e) => {
-    isDraggingProgress = true;
-    if (currentSound && currentSound.duration()) {
-        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
-        currentTimeEl.innerText = formatTime(seekTime);
-    }
+playerProgressBar.addEventListener('input', (e) => {
+  isDraggingProgress = true;
+  if (currentSound && currentSound.duration()) {
+    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+    currentTimeEl.innerText = formatTime(seekTime);
+  }
 });
 
-progressBar.addEventListener('change', (e) => {
-    if (currentSound && currentSound.duration()) {
-        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
-        currentSound.seek(seekTime);
-        if (!isPlaying) {
-            currentSound.play();
-        }
+playerProgressBar.addEventListener('change', (e) => {
+  if (currentSound && currentSound.duration()) {
+    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+    currentSound.seek(seekTime);
+    if (!isPlaying) {
+      currentSound.play();
     }
-    isDraggingProgress = false;
+  }
+  isDraggingProgress = false;
+});
+
+closePlayerBtn.addEventListener('click', () => {
+  if (currentSound) currentSound.stop();
+  playerBar.classList.add('translate-y-full');
+  activeVersion = null;
 });
 
 playPauseBtn.addEventListener('click', () => {
@@ -478,20 +532,15 @@ skipNextBtn.addEventListener('click', () => {
   }
 });
 
-// Tempo Control
-tempoSelect.addEventListener('change', (e) => {
-    if (!currentSound) return;
-    const rate = speedMap[e.target.value] || 1.0;
-    currentSound.rate(rate);
-});
+// Tempo Control (handled by modal)
 
 // Close Control
 closePlayerBtn.addEventListener('click', () => {
-    if (currentSound) {
-        currentSound.stop();
-    }
-    playerBar.classList.add('translate-y-full');
-    activeVersion = null;
+  if (currentSound) {
+    currentSound.stop();
+  }
+  playerBar.classList.add('translate-y-full');
+  activeVersion = null;
 });
 
 // modal helpers
@@ -501,7 +550,16 @@ const speedDownloadBtn = document.getElementById('speed-download-btn');
 const speedCancelBtn = document.getElementById('speed-cancel-btn');
 
 function openSpeedModal() {
-  if (!activeVersion || !audioBlobs[activeVersion]) return;
+  console.log('openSpeedModal triggered. activeVersion:', activeVersion);
+  if (!activeVersion) {
+    alert("Please select a mix to play first before downloading.");
+    return;
+  }
+  if (!audioBlobs[activeVersion]) {
+    alert("Audio for this version is not ready yet.");
+    return;
+  }
+
   // reset checkboxes
   speedForm.reset();
   speedModal.classList.remove('hidden');
@@ -579,4 +637,40 @@ speedDownloadBtn.addEventListener('click', async () => {
 });
 
 // wire up original download button to open modal
-downloadBtn.addEventListener('click', openSpeedModal);
+downloadBtn.addEventListener('click', () => {
+  console.log('Download button clicked');
+  openSpeedModal();
+});
+
+// Consolidated Player Controls
+playerProgressBar.addEventListener('mousedown', () => isDraggingProgress = true);
+playerProgressBar.addEventListener('touchstart', () => isDraggingProgress = true);
+playerProgressBar.addEventListener('mouseup', () => isDraggingProgress = false);
+playerProgressBar.addEventListener('touchend', () => isDraggingProgress = false);
+
+playerProgressBar.addEventListener('input', (e) => {
+  isDraggingProgress = true;
+  if (currentSound && currentSound.duration()) {
+    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+    currentTimeEl.innerText = formatTime(seekTime);
+  }
+});
+
+playerProgressBar.addEventListener('change', (e) => {
+  if (currentSound && currentSound.duration()) {
+    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+    currentSound.seek(seekTime);
+    if (!isPlaying) {
+      currentSound.play();
+    }
+  }
+  isDraggingProgress = false;
+});
+
+closePlayerBtn.addEventListener('click', () => {
+  if (currentSound) currentSound.stop();
+  playerBar.classList.add('translate-y-full');
+  activeVersion = null;
+});
+
+console.log('Main.js script loaded completely.');
