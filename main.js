@@ -382,6 +382,30 @@ function playMix(version, cardElement) {
 }
 
 // Player Controls
+progressBar.addEventListener('mousedown', () => isDraggingProgress = true);
+progressBar.addEventListener('touchstart', () => isDraggingProgress = true);
+progressBar.addEventListener('mouseup', () => isDraggingProgress = false);
+progressBar.addEventListener('touchend', () => isDraggingProgress = false);
+
+progressBar.addEventListener('input', (e) => {
+    isDraggingProgress = true;
+    if (currentSound && currentSound.duration()) {
+        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+        currentTimeEl.innerText = formatTime(seekTime);
+    }
+});
+
+progressBar.addEventListener('change', (e) => {
+    if (currentSound && currentSound.duration()) {
+        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+        currentSound.seek(seekTime);
+        if (!isPlaying) {
+            currentSound.play();
+        }
+    }
+    isDraggingProgress = false;
+});
+
 playPauseBtn.addEventListener('click', () => {
   if (!currentSound) return;
   if (isPlaying) {
@@ -452,6 +476,22 @@ skipNextBtn.addEventListener('click', () => {
     const card = document.querySelector(`.mix-card[data-version="${versionsOrder[nextIndex]}"]`);
     playMix(versionsOrder[nextIndex], card);
   }
+});
+
+// Tempo Control
+tempoSelect.addEventListener('change', (e) => {
+    if (!currentSound) return;
+    const rate = speedMap[e.target.value] || 1.0;
+    currentSound.rate(rate);
+});
+
+// Close Control
+closePlayerBtn.addEventListener('click', () => {
+    if (currentSound) {
+        currentSound.stop();
+    }
+    playerBar.classList.add('translate-y-full');
+    activeVersion = null;
 });
 
 // modal helpers
