@@ -220,22 +220,33 @@
         <footer id="player-bar"
             class="fixed bottom-0 left-0 right-0 p-6 z-50 transform translate-y-full transition-transform duration-500">
             <div
-                class="max-w-[1400px] mx-auto glass-card rounded-full px-8 py-4 flex items-center justify-between shadow-2xl">
-                <div class="flex items-center gap-4 w-1/4">
-                    <div class="size-12 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden"
+                class="max-w-[1400px] mx-auto glass-card rounded-[2rem] px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shadow-2xl w-full">
+                <!-- Left Pane -->
+                <div class="flex items-center gap-2 md:gap-4 w-[30%] min-w-0 pr-2">
+                    <div class="shrink-0 size-10 md:size-12 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden"
                         id="mini-cover">
                         <img alt="Now Playing" class="w-full h-full object-cover"
                             src="https://images.unsplash.com/photo-1519834125748-93108dec849c?auto=format&fit=crop&q=80&w=800" />
                     </div>
-                    <div>
-                        <p id="now-playing-title" class="text-sm font-bold text-slate-800">Utero Ambient</p>
+                    <div class="truncate">
+                        <p id="now-playing-title" class="text-xs md:text-sm font-bold text-slate-800 truncate">Utero
+                            Ambient</p>
                         <p id="now-playing-subtitle"
-                            class="text-[10px] font-bold text-primary uppercase tracking-wider">Currently Playing</p>
+                            class="text-[8px] md:text-[10px] font-bold text-primary uppercase tracking-wider truncate">
+                            Currently Playing</p>
                     </div>
                 </div>
-                <div class="flex-1 flex flex-col items-center gap-1">
-                    <div id="waveform" class="flex items-center justify-center gap-[6px] h-10 w-full max-w-md">
+
+                <!-- Center Pane -->
+                <div class="w-[40%] shrink-0 flex flex-col items-center justify-center gap-1 px-1 md:px-4">
+                    <div id="waveform" class="flex items-center justify-center gap-[6px] h-8 w-full max-w-[400px]">
                         <!-- Bars added by JS -->
+                    </div>
+                    <div class="w-full max-w-md flex items-center gap-3 mb-1 mt-1">
+                        <span id="current-time" class="text-xs text-slate-500 font-medium w-9 text-right">0:00</span>
+                        <input type="range" id="progress-bar" min="0" max="100" value="0" step="0.1"
+                            class="flex-1 accent-primary cursor-pointer" />
+                        <span id="total-time" class="text-xs text-slate-500 font-medium w-9">0:00</span>
                     </div>
                     <div class="flex items-center gap-6">
                         <button id="skip-prev-btn"
@@ -250,58 +261,50 @@
                             class="material-symbols-outlined text-slate-400 hover:text-slate-600">skip_next</button>
                     </div>
                 </div>
-                <div class="w-1/4 flex justify-end items-center gap-6">
-                    <div class="flex items-center gap-3 w-32">
-                        <i data-lucide="volume-2" class="text-slate-400 w-5 h-5"></i>
-                        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7"
-                            class="flex-1 accent-primary" />
+                <!-- Right Pane -->
+                <div class="flex items-center justify-end gap-1 md:gap-2 w-[30%] min-w-0 pl-2">
+                    <!-- Volume button with hover popup (wrapper padded to maintain hover) -->
+                    <div class="relative group flex items-center justify-center p-2 rounded-lg cursor-pointer">
+                        <i data-lucide="volume-2"
+                            class="text-slate-400 group-hover:text-primary transition-colors w-5 h-5 md:w-6 md:h-6"></i>
+                        <div
+                            class="absolute bottom-[100%] left-1/2 -translate-x-1/2 pb-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 w-32 flex justify-center">
+                            <div
+                                class="bg-white/95 backdrop-blur-md border border-slate-200 rounded-xl px-3 py-4 shadow-[0_-10px_40px_-5px_rgba(226,169,190,0.4)] transform scale-95 group-hover:scale-100 transition-transform origin-bottom">
+                                <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7"
+                                    class="accent-primary w-24 cursor-pointer" />
+                            </div>
+                        </div>
                     </div>
-                    <button id="download-btn" class="text-slate-400 hover:text-primary transition-colors"
+
+                    <!-- Tempo invisible select over icon -->
+                    <div class="relative group flex items-center justify-center p-2 rounded-lg cursor-pointer">
+                        <i data-lucide="gauge"
+                            class="text-slate-400 group-hover:text-primary transition-colors w-5 h-5 md:w-6 md:h-6"></i>
+                        <select id="tempo-select" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            title="Adjust Tempo">
+                            <option value="Slow">0.8x</option>
+                            <option value="Normal" selected>1.0x</option>
+                            <option value="Fast">1.2x</option>
+                        </select>
+                    </div>
+
+                    <button id="download-btn" class="p-2 text-slate-400 hover:text-primary transition-colors"
                         title="Download Mix">
-                        <i data-lucide="download" class="w-6 h-6"></i>
+                        <i data-lucide="download" class="w-5 h-5 md:w-6 md:h-6"></i>
                     </button>
-                    <button class="text-slate-400 hover:text-primary transition-colors">
-                        <i data-lucide="heart" class="w-6 h-6"></i>
+                    <button class="p-2 text-slate-400 hover:text-primary transition-colors">
+                        <i data-lucide="heart" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                    <button id="close-player-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                        title="Close Player">
+                        <i data-lucide="x" class="w-5 h-5 md:w-6 md:h-6"></i>
                     </button>
                 </div>
             </div>
         </footer>
     </div>
 
-    <!-- Tempo adjustment modal -->
-    <div id="speed-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-        <div class="bg-white rounded-2xl p-8 w-96 shadow-2xl">
-            <h2 class="text-xl font-bold mb-6 text-slate-800">Choose tempo</h2>
-            <form id="speed-form" class="space-y-3 mb-6">
-                <div class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-                    <input type="radio" id="speed-slow" name="speed" value="Slow" class="w-4 h-4 accent-primary">
-                    <label for="speed-slow" class="ml-3 flex-1 cursor-pointer">
-                        <span class="font-semibold text-slate-800">Slow</span>
-                        <span class="text-xs text-slate-500 ml-2">0.8x</span>
-                    </label>
-                </div>
-                <div class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-                    <input type="radio" id="speed-normal" name="speed" value="Normal" class="w-4 h-4 accent-primary" checked>
-                    <label for="speed-normal" class="ml-3 flex-1 cursor-pointer">
-                        <span class="font-semibold text-slate-800">Normal</span>
-                        <span class="text-xs text-slate-500 ml-2">1x</span>
-                    </label>
-                </div>
-                <div class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-                    <input type="radio" id="speed-fast" name="speed" value="Fast" class="w-4 h-4 accent-primary">
-                    <label for="speed-fast" class="ml-3 flex-1 cursor-pointer">
-                        <span class="font-semibold text-slate-800">Fast</span>
-                        <span class="text-xs text-slate-500 ml-2">1.2x</span>
-                    </label>
-                </div>
-            </form>
-            <p class="text-xs text-slate-500 mb-6">Select a tempo to preview and download.</p>
-            <div class="flex justify-end gap-3">
-                <button id="speed-cancel-btn" class="px-6 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors">Cancel</button>
-                <button id="speed-download-btn" class="px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-pink-500 hover:shadow-lg hover:scale-105 transition-all active:scale-95">Download</button>
-            </div>
-        </div>
-    </div>
 
     <script src="config.js"></script>
     <script src="main.js"></script>

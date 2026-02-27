@@ -32,6 +32,36 @@ const volumeSlider = document.getElementById('volume-slider');
 const skipPrevBtn = document.getElementById('skip-prev-btn');
 const skipNextBtn = document.getElementById('skip-next-btn');
 const downloadBtn = document.getElementById('download-btn');
+const currentTimeEl = document.getElementById('current-time');
+const totalTimeEl = document.getElementById('total-time');
+const progressBar = document.getElementById('progress-bar');
+const closePlayerBtn = document.getElementById('close-player-btn');
+const tempoSelect = document.getElementById('tempo-select');
+
+let progressAnimFrame;
+let isDraggingProgress = false;
+
+function formatTime(secs) {
+    if (isNaN(secs)) return '0:00';
+    const minutes = Math.floor(secs / 60) || 0;
+    const seconds = Math.floor(secs % 60) || 0;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
+function updateProgress() {
+    if (currentSound && isPlaying) {
+        if (!isDraggingProgress) {
+            let seek = currentSound.seek() || 0;
+            if (typeof seek !== 'number') seek = 0;
+            
+            currentTimeEl.innerText = formatTime(seek);
+            if (currentSound.duration()) {
+                progressBar.value = (seek / currentSound.duration()) * 100 || 0;
+            }
+        }
+        progressAnimFrame = requestAnimationFrame(updateProgress);
+    }
+}
 
 // Server Healthcheck
 const checkServerHealth = async () => {
@@ -83,8 +113,8 @@ const checkServerHealth = async () => {
         }
     }
 
-    // Re-poll every 6 seconds regardless of status to keep status continuous
-    setTimeout(checkServerHealth, 6000);
+    // Re-poll every 10 seconds regardless of status to keep status continuous
+    setTimeout(checkServerHealth, 10000);
 };
 
 // Start healthcheck on load
@@ -204,29 +234,49 @@ function playMix(version, cardElement) {
 
     // Create new sound
     const url = URL.createObjectURL(blob);
+    
+    // Reset Progress Bar UI
+    progressBar.value = 0;
+    currentTimeEl.innerText = '0:00';
+    totalTimeEl.innerText = '0:00';
+    if (progressAnimFrame) cancelAnimationFrame(progressAnimFrame);
+
     currentSound = new Howl({
         src: [url],
         format: ['mp3'],
         volume: volumeSlider.value,
+        rate: speedMap[tempoSelect.value] || 1.0,
+        onload: () => {
+            totalTimeEl.innerText = formatTime(currentSound.duration());
+        },
         onplay: () => {
             isPlaying = true;
             updatePlayPauseUI();
             startWaveform();
+            totalTimeEl.innerText = formatTime(currentSound.duration());
+            progressAnimFrame = requestAnimationFrame(updateProgress);
         },
         onpause: () => {
             isPlaying = false;
             updatePlayPauseUI();
             stopWaveform();
+            if (progressAnimFrame) cancelAnimationFrame(progressAnimFrame);
         },
         onstop: () => {
             isPlaying = false;
             updatePlayPauseUI();
             stopWaveform();
+            if (progressAnimFrame) cancelAnimationFrame(progressAnimFrame);
+            progressBar.value = 0;
+            currentTimeEl.innerText = '0:00';
         },
         onend: () => {
             isPlaying = false;
             updatePlayPauseUI();
             stopWaveform();
+            if (progressAnimFrame) cancelAnimationFrame(progressAnimFrame);
+            progressBar.value = 0;
+            currentTimeEl.innerText = '0:00';
         }
     });
 
@@ -235,6 +285,30 @@ function playMix(version, cardElement) {
 }
 
 // Player Controls
+progressBar.addEventListener('mousedown', () => isDraggingProgress = true);
+progressBar.addEventListener('touchstart', () => isDraggingProgress = true);
+progressBar.addEventListener('mouseup', () => isDraggingProgress = false);
+progressBar.addEventListener('touchend', () => isDraggingProgress = false);
+
+progressBar.addEventListener('input', (e) => {
+    isDraggingProgress = true;
+    if (currentSound && currentSound.duration()) {
+        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+        currentTimeEl.innerText = formatTime(seekTime);
+    }
+});
+
+progressBar.addEventListener('change', (e) => {
+    if (currentSound && currentSound.duration()) {
+        const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
+        currentSound.seek(seekTime);
+        if (!isPlaying) {
+            currentSound.play();
+        }
+    }
+    isDraggingProgress = false;
+});
+
 playPauseBtn.addEventListener('click', () => {
     if (!currentSound) return;
     if (isPlaying) {
@@ -307,43 +381,27 @@ skipNextBtn.addEventListener('click', () => {
     }
 });
 
-// modal helpers
-const speedModal = document.getElementById('speed-modal');
-const speedForm = document.getElementById('speed-form');
-const speedDownloadBtn = document.getElementById('speed-download-btn');
-const speedCancelBtn = document.getElementById('speed-cancel-btn');
-
-function openSpeedModal() {
-    if (!activeVersion || !audioBlobs[activeVersion]) return;
-    // reset checkboxes
-    speedForm.reset();
-    speedModal.classList.remove('hidden');
-    // start playback if not already playing so preview has audio
-    if (currentSound && !isPlaying) {
-        currentSound.play();
-    }
-}
-
-function closeSpeedModal() {
-    speedModal.classList.add('hidden');
-    // restore normal rate if we changed it
-    if (currentSound) currentSound.rate(1.0);
-}
-
-// allow preview by selecting tempo (radio button = always one)
-speedForm.addEventListener('change', () => {
+// Tempo Control
+tempoSelect.addEventListener('change', (e) => {
     if (!currentSound) return;
-    const checked = speedForm.elements['speed'].value;
-    const rate = speedMap[checked] || 1.0;
+    const rate = speedMap[e.target.value] || 1.0;
     currentSound.rate(rate);
 });
 
-// hook up cancel button
-speedCancelBtn.addEventListener('click', closeSpeedModal);
+// Close Control
+closePlayerBtn.addEventListener('click', () => {
+    if (currentSound) {
+        currentSound.stop();
+    }
+    playerBar.classList.add('translate-y-full');
+    activeVersion = null;
+});
 
-// handle download click inside modal
-speedDownloadBtn.addEventListener('click', async () => {
-    const chosen = speedForm.elements['speed'].value; // radio button = single value
+// Download Control
+downloadBtn.addEventListener('click', async () => {
+    if (!activeVersion || !audioBlobs[activeVersion]) return;
+
+    const chosen = tempoSelect.value;
     if (!chosen) {
         alert('Please choose a tempo.');
         return;
@@ -353,11 +411,13 @@ speedDownloadBtn.addEventListener('click', async () => {
     const blob = audioBlobs[activeVersion];
     const formData = new FormData();
     formData.append('file', blob, `${activeVersion}.mp3`);
-    formData.append('speeds', chosen); // single speed now
+    formData.append('speeds', chosen); // single speed
 
     try {
-        speedDownloadBtn.disabled = true;
-        statusText.innerText = '⏳ Adjusting tempo...';
+        downloadBtn.disabled = true;
+        const previousStatus = statusText.innerText;
+        statusText.innerText = '⏳ Adjusting tempo & downloading...';
+        
         const resp = await fetch(`${API_BASE}/adjust-bpm`, { method: 'POST', body: formData });
         if (!resp.ok) throw new Error('Server error adjusting tempo');
         const resultBlob = await resp.blob();
@@ -379,17 +439,12 @@ speedDownloadBtn.addEventListener('click', async () => {
                 URL.revokeObjectURL(url);
             }, 100);
         }
-        statusText.innerText = '';
-        // delay close to ensure download fully initiated
-        setTimeout(closeSpeedModal, 500);
+        statusText.innerText = '✅ Download complete!';
+        setTimeout(() => { if (statusText.innerText === '✅ Download complete!') statusText.innerText = previousStatus; }, 3000);
     } catch (e) {
         console.error(e);
         statusText.innerText = '❌ Tempo adjustment failed.';
-        closeSpeedModal();
     } finally {
-        speedDownloadBtn.disabled = false;
+        downloadBtn.disabled = false;
     }
 });
-
-// wire up original download button to open modal
-downloadBtn.addEventListener('click', openSpeedModal);
