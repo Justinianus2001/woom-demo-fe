@@ -26,6 +26,15 @@
     border-radius: 4px;
     margin: 0 1px;
 }
+
+/* ensure grid clears the fixed player */
+#mix-grid {
+    padding-bottom: 220px; /* ensure cards not hidden by player */
+}
+
+/* .mix-card {
+    z-index: 20;
+} */
 .pulse-wave {
     animation: pulse-wave-height 1.5s ease-in-out infinite;
 }
