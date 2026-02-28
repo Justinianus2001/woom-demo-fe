@@ -234,9 +234,9 @@
         <footer id="player-bar"
             class="fixed bottom-0 left-0 right-0 p-6 z-50 transform translate-y-full transition-transform duration-500">
             <div
-                class="max-w-[1400px] mx-auto glass-card rounded-[2rem] px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shadow-2xl w-full">
+                class="max-w-[1400px] mx-auto glass-card rounded-[2rem] px-4 md:px-8 py-3 md:py-4 flex flex-wrap md:flex-nowrap items-center justify-between shadow-2xl w-full gap-y-3 md:gap-y-0">
                 <!-- Left Pane -->
-                <div class="flex items-center gap-2 md:gap-4 w-[30%] min-w-0 pr-2">
+                <div class="flex items-center gap-2 md:gap-4 w-[50%] md:w-[30%] min-w-0 pr-2 order-1">
                     <div class="shrink-0 size-10 md:size-12 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden"
                         id="mini-cover">
                         <img alt="Now Playing" class="w-full h-full object-cover"
@@ -252,8 +252,10 @@
                 </div>
 
                 <!-- Center Pane -->
-                <div class="w-[40%] shrink-0 flex flex-col items-center justify-center gap-1 px-1 md:px-4">
-                    <div id="waveform" class="flex items-center justify-center gap-[6px] h-8 w-full max-w-[400px]">
+                <div
+                    class="w-full md:w-[40%] shrink-0 flex flex-col items-center justify-center gap-1 px-1 md:px-4 order-3 md:order-2">
+                    <div id="waveform"
+                        class="hidden md:flex items-center justify-center gap-[6px] h-8 w-full max-w-[400px]">
                         <!-- Bars added by JS -->
                     </div>
                     <div class="w-full max-w-md flex items-center gap-3 mb-1 mt-1">
@@ -276,9 +278,11 @@
                     </div>
                 </div>
                 <!-- Right Pane -->
-                <div class="flex items-center justify-end gap-1 md:gap-2 w-[30%] min-w-0 pl-2">
+                <div
+                    class="flex items-center justify-end gap-0.5 md:gap-2 w-[50%] md:w-[30%] min-w-0 pr-1 md:pl-2 order-2 md:order-3">
                     <!-- Volume button with hover popup (wrapper padded to maintain hover) -->
-                    <div class="relative group flex items-center justify-center p-2 rounded-lg cursor-pointer">
+                    <div
+                        class="relative group hidden sm:flex items-center justify-center p-1.5 md:p-2 rounded-lg cursor-pointer">
                         <i data-lucide="volume-2"
                             class="text-slate-400 group-hover:text-primary transition-colors w-5 h-5 md:w-6 md:h-6"></i>
                         <div
@@ -292,7 +296,7 @@
                     </div>
 
                     <!-- Tempo invisible select over icon -->
-                    <div class="relative group flex items-center justify-center p-2 rounded-lg cursor-pointer">
+                    <div class="relative group flex items-center justify-center p-1.5 md:p-2 rounded-lg cursor-pointer">
                         <i data-lucide="gauge"
                             class="text-slate-400 group-hover:text-primary transition-colors w-5 h-5 md:w-6 md:h-6"></i>
                         <select id="tempo-select" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -303,15 +307,15 @@
                         </select>
                     </div>
 
-                    <button id="download-btn" class="p-2 text-slate-400 hover:text-primary transition-colors"
+                    <button id="download-btn" class="p-1.5 md:p-2 text-slate-400 hover:text-primary transition-colors"
                         title="Download Mix">
                         <i data-lucide="download" class="w-5 h-5 md:w-6 md:h-6"></i>
                     </button>
-                    <button class="p-2 text-slate-400 hover:text-primary transition-colors">
+                    <button class="p-1.5 md:p-2 text-slate-400 hover:text-primary transition-colors">
                         <i data-lucide="heart" class="w-5 h-5 md:w-6 md:h-6"></i>
                     </button>
-                    <button id="close-player-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                        title="Close Player">
+                    <button id="close-player-btn"
+                        class="p-1.5 md:p-2 text-slate-400 hover:text-red-500 transition-colors" title="Close Player">
                         <i data-lucide="x" class="w-5 h-5 md:w-6 md:h-6"></i>
                     </button>
                 </div>
