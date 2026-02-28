@@ -532,7 +532,14 @@ skipNextBtn.addEventListener('click', () => {
   }
 });
 
-// Tempo Control (handled by modal)
+// Tempo Control (inline)
+const tempoSelect = document.getElementById('tempo-select');
+
+tempoSelect.addEventListener('change', (e) => {
+  if (!currentSound) return;
+  const rate = speedMap[e.target.value] || 1.0;
+  currentSound.rate(rate);
+});
 
 // Close Control
 closePlayerBtn.addEventListener('click', () => {
@@ -543,14 +550,8 @@ closePlayerBtn.addEventListener('click', () => {
   activeVersion = null;
 });
 
-// modal helpers
-const speedModal = document.getElementById('speed-modal');
-const speedForm = document.getElementById('speed-form');
-const speedDownloadBtn = document.getElementById('speed-download-btn');
-const speedCancelBtn = document.getElementById('speed-cancel-btn');
-
-function openSpeedModal() {
-  console.log('openSpeedModal triggered. activeVersion:', activeVersion);
+// hook up download button
+downloadBtn.addEventListener('click', async () => {
   if (!activeVersion) {
     alert("Please select a mix to play first before downloading.");
     return;
@@ -560,35 +561,7 @@ function openSpeedModal() {
     return;
   }
 
-  // reset checkboxes
-  speedForm.reset();
-  speedModal.classList.remove('hidden');
-  // start playback if not already playing so preview has audio
-  if (currentSound && !isPlaying) {
-    currentSound.play();
-  }
-}
-
-function closeSpeedModal() {
-  speedModal.classList.add('hidden');
-  // restore normal rate if we changed it
-  if (currentSound) currentSound.rate(1.0);
-}
-
-// allow preview by selecting tempo (radio button = always one)
-speedForm.addEventListener('change', () => {
-  if (!currentSound) return;
-  const checked = speedForm.elements['speed'].value;
-  const rate = speedMap[checked] || 1.0;
-  currentSound.rate(rate);
-});
-
-// hook up cancel button
-speedCancelBtn.addEventListener('click', closeSpeedModal);
-
-// handle download click inside modal
-speedDownloadBtn.addEventListener('click', async () => {
-  const chosen = speedForm.elements['speed'].value; // radio button = single value
+  const chosen = tempoSelect.value;
   if (!chosen) {
     alert('Please choose a tempo.');
     return;
@@ -601,7 +574,7 @@ speedDownloadBtn.addEventListener('click', async () => {
   formData.append('speeds', chosen); // single speed now
 
   try {
-    speedDownloadBtn.disabled = true;
+    downloadBtn.disabled = true;
     statusText.innerText = '⏳ Adjusting tempo...';
     const resp = await fetch(`${API_BASE}/adjust-bpm`, { method: 'POST', body: formData });
     if (!resp.ok) throw new Error('Server error adjusting tempo');
@@ -625,52 +598,12 @@ speedDownloadBtn.addEventListener('click', async () => {
       }, 100);
     }
     statusText.innerText = '';
-    // delay close to ensure download fully initiated
-    setTimeout(closeSpeedModal, 500);
   } catch (e) {
     console.error(e);
     statusText.innerText = '❌ Tempo adjustment failed.';
-    closeSpeedModal();
   } finally {
-    speedDownloadBtn.disabled = false;
+    downloadBtn.disabled = false;
   }
-});
-
-// wire up original download button to open modal
-downloadBtn.addEventListener('click', () => {
-  console.log('Download button clicked');
-  openSpeedModal();
-});
-
-// Consolidated Player Controls
-playerProgressBar.addEventListener('mousedown', () => isDraggingProgress = true);
-playerProgressBar.addEventListener('touchstart', () => isDraggingProgress = true);
-playerProgressBar.addEventListener('mouseup', () => isDraggingProgress = false);
-playerProgressBar.addEventListener('touchend', () => isDraggingProgress = false);
-
-playerProgressBar.addEventListener('input', (e) => {
-  isDraggingProgress = true;
-  if (currentSound && currentSound.duration()) {
-    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
-    currentTimeEl.innerText = formatTime(seekTime);
-  }
-});
-
-playerProgressBar.addEventListener('change', (e) => {
-  if (currentSound && currentSound.duration()) {
-    const seekTime = (parseFloat(e.target.value) / 100) * currentSound.duration();
-    currentSound.seek(seekTime);
-    if (!isPlaying) {
-      currentSound.play();
-    }
-  }
-  isDraggingProgress = false;
-});
-
-closePlayerBtn.addEventListener('click', () => {
-  if (currentSound) currentSound.stop();
-  playerBar.classList.add('translate-y-full');
-  activeVersion = null;
 });
 
 console.log('Main.js script loaded completely.');
