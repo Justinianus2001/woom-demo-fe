@@ -2,342 +2,345 @@
 <html class="light" lang="en">
 
 <head>
-  <meta charset="utf-8" />
-  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-  <title>Woom Music - Auditory Journey</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap"
-    rel="stylesheet" />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-    rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Woom Music - Auditory Journey</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
 
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          colors: {
-            "primary": "#e2a9be",
-            "accent": "#f3a683",
-            "sage": "#a8bbae",
-            "mist": "#eef2f3",
-            "dawn-pink": "#fdf2f2",
-            "dawn-orange": "#fff5eb",
-          },
-          fontFamily: {
-            "display": ["Manrope"]
-          },
-          borderRadius: { "DEFAULT": "1.5rem", "lg": "2.5rem", "xl": "4rem", "full": "9999px" },
-        },
-      },
-    }
-  </script>
-  <style type="text/tailwindcss">
-    @layer base {
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#e2a9be",
+                        "accent": "#f3a683",
+                        "sage": "#a8bbae",
+                        "mist": "#eef2f3",
+                        "dawn-pink": "#fdf2f2",
+                        "dawn-orange": "#fff5eb",
+                    },
+                    fontFamily: {
+                        "display": ["Manrope"]
+                    },
+                    borderRadius: { "DEFAULT": "1.5rem", "lg": "2.5rem", "xl": "4rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
             body {
                 @apply font-display text-slate-800 antialiased bg-[#fcf9f9];
             }
         }
     </style>
-  <link href="styles.css" rel="stylesheet" />
+    <link href="styles.css" rel="stylesheet" />
 </head>
 
 <body class="bg-mesh-gradient min-h-screen">
-  <div id="app" class="relative w-full min-h-screen flex flex-col p-6 md:p-10 pb-40">
-    <!-- Header -->
-    <header class="mb-12 text-center">
-      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-700 mb-2">Woom Music</h1>
-      <p class="text-slate-500 font-medium text-lg">Harmonize your baby's heartbeat with curated melodies</p>
-    </header>
+    <div id="app" class="relative w-full min-h-screen flex flex-col p-6 md:p-10 pb-40">
+        <!-- Header -->
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-700 mb-2">Woom Music</h1>
+            <p class="text-slate-500 font-medium text-lg">Harmonize your baby's heartbeat with curated melodies</p>
+        </header>
 
-    <!-- Upload Section -->
-    <section class="max-w-4xl mx-auto w-full mb-8">
-      <div class="glass-card rounded-3xl p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center justify-between">
-        <div class="flex-1 space-y-6 w-full">
-          <div class="relative group">
-            <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">1. Background
-              Music Track</label>
-            <div class="flex gap-2">
-              <select id="track-select"
-                class="flex-1 p-4 rounded-xl border-2 border-primary/30 focus:border-primary transition-colors bg-white/30 text-slate-600">
-                <option value="">Loading available tracks...</option>
-              </select>
-              <button id="preview-track-btn" title="Preview track"
-                class="p-4 rounded-xl border-2 border-primary/30 bg-white/30 text-primary hover:bg-primary/10 transition-all flex items-center justify-center">
-                <i data-lucide="play-circle" id="preview-icon"></i>
-              </button>
+        <!-- Upload Section -->
+        <section class="max-w-4xl mx-auto w-full mb-8">
+            <div
+                class="glass-card rounded-3xl p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center justify-between">
+                <div class="flex-1 space-y-6 w-full">
+                    <div class="relative group">
+                        <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">1.
+                            Background
+                            Music Track</label>
+                        <div class="flex gap-2">
+                            <select id="track-select"
+                                class="flex-1 p-4 rounded-xl border-2 border-primary/30 focus:border-primary transition-colors bg-white/30 text-slate-600">
+                                <option value="">Loading available tracks...</option>
+                            </select>
+                            <button id="preview-track-btn" title="Preview track"
+                                class="p-4 rounded-xl border-2 border-primary/30 bg-white/30 text-primary hover:bg-primary/10 transition-all flex items-center justify-center">
+                                <i data-lucide="play-circle" id="preview-icon"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative group">
+                        <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">2.
+                            Heartbeat Picked (.wav)</label>
+                        <div class="relative">
+                            <input type="file" id="picked-upload" accept="audio/*, .wav, audio/wav, audio/x-wav"
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                            <div
+                                class="p-4 rounded-xl border-2 border-dashed border-accent/30 group-hover:border-accent transition-colors flex items-center gap-3 bg-white/30">
+                                <i data-lucide="heart" class="text-accent"></i>
+                                <span id="picked-name" class="text-slate-400">Select heartbeat recording...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-col items-center gap-4">
+                    <button id="mix-btn" disabled
+                        class="bg-slate-800 text-white px-10 py-5 rounded-full font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl disabled:bg-slate-400 disabled:scale-100 flex items-center gap-3">
+                        <i data-lucide="power" id="mix-icon" class="animate-pulse"></i>
+                        <span id="mix-btn-text">Waking Server...</span>
+                    </button>
+                    <div
+                        class="flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full border border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md">
+                        <span id="server-status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse"></span>
+                        <span id="server-status-text"
+                            class="text-xs font-bold text-slate-500 uppercase tracking-wider">Checking
+                            Server</span>
+                    </div>
+                    <p id="status-text" class="text-sm font-semibold text-primary"></p>
+                    <div id="progress-bar" class="hidden flex items-center gap-2 w-48">
+                        <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                            <div id="progress-fill" class="h-full bg-primary transition-all duration-500"
+                                style="width: 0%"></div>
+                        </div>
+                        <span id="progress-text" class="text-xs font-bold text-slate-600">0/4</span>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="relative group">
-            <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">2.
-              Heartbeat Picked (.wav)</label>
-            <div class="relative">
-              <input type="file" id="picked-upload" accept="audio/*"
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
-              <div
-                class="p-4 rounded-xl border-2 border-dashed border-accent/30 group-hover:border-accent transition-colors flex items-center gap-3 bg-white/30">
-                <i data-lucide="heart" class="text-accent"></i>
-                <span id="picked-name" class="text-slate-400">Select heartbeat recording...</span>
-              </div>
+        </section>
+
+        <!-- Results Grid -->
+        <main id="mix-grid"
+            class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-[1600px] mx-auto w-full transition-all duration-700">
+            <!-- V1: Utero Ambient -->
+            <div class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
+                data-version="v1">
+                <div
+                    class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100 flex items-center justify-center">
+                    <img alt="Utero Ambient"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop" />
+                    <div
+                        class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="bg-white/90 p-4 rounded-full text-primary shadow-xl">
+                            <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Original Flow</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-4">Original tempo preserved. Perfectly trimmed,
+                        normalized, and balanced for a natural listen.</p>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">V1
+                            Classic</span>
+                        <span
+                            class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="flex flex-col items-center gap-4">
-          <button id="mix-btn" disabled
-            class="bg-slate-800 text-white px-10 py-5 rounded-full font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl disabled:bg-slate-400 disabled:scale-100 flex items-center gap-3">
-            <i data-lucide="power" id="mix-icon" class="animate-pulse"></i>
-            <span id="mix-btn-text">Waking Server...</span>
-          </button>
-          <div
-            class="flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full border border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md">
-            <span id="server-status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-400 animate-pulse"></span>
-            <span id="server-status-text" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Checking
-              Server</span>
-          </div>
-          <p id="status-text" class="text-sm font-semibold text-primary"></p>
-          <div id="progress-bar" class="hidden flex items-center gap-2 w-48">
-            <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
-              <div id="progress-fill" class="h-full bg-primary transition-all duration-500" style="width: 0%"></div>
+
+            <!-- V2: HPSS 432Hz -->
+            <div class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
+                data-version="v2">
+                <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
+                    <img alt="Binaural Peace"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        src="https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=800&auto=format&fit=crop" />
+                    <div
+                        class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="bg-white/90 p-4 rounded-full text-accent shadow-xl">
+                            <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">432Hz Healing</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-4">Focus on clarity. HPSS denoising removes
+                        noise, tuned to the 432Hz healing frequency.</p>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">V2
+                            Healing</span>
+                        <span
+                            class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
+                    </div>
+                </div>
             </div>
-            <span id="progress-text" class="text-xs font-bold text-slate-600">0/4</span>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Results Grid -->
-    <main id="mix-grid"
-      class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-[1600px] mx-auto w-full transition-all duration-700">
-      <!-- V1: Utero Ambient -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v1">
-        <div
-          class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100 flex items-center justify-center">
-          <img alt="Utero Ambient"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-primary shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+            <!-- V3: Adaptive BPM -->
+            <div class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
+                data-version="v3">
+                <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
+                    <img alt="Deep Meditation"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        src="https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=800&auto=format&fit=crop" />
+                    <div
+                        class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="bg-white/90 p-4 rounded-full text-sage shadow-xl">
+                            <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Tempo Match</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-4">Adaptive BPM sync. Denoised heartbeat is
+                        time-stretched to perfectly match the music's natural tempo.</p>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-[10px] font-bold uppercase tracking-widest text-sage bg-sage/10 px-2 py-1 rounded">V3
+                            Dynamic</span>
+                        <span
+                            class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">Original Flow</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Original tempo preserved. Perfectly trimmed,
-            normalized, and balanced for a natural listen.</p>
-          <div class="flex items-center gap-2">
-            <span
-              class="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">V1
-              Classic</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
 
-      <!-- V2: HPSS 432Hz -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v2">
-        <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
-          <img alt="Binaural Peace"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-accent shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+            <!-- V4: Double Tempo -->
+            <div class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
+                data-version="v4">
+                <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
+                    <img alt="Acoustic Warmth"
+                        class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                        src="https://images.unsplash.com/photo-1614850715649-1d0106293bd1?q=80&w=800&auto=format&fit=crop" />
+                    <div
+                        class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="bg-white/90 p-4 rounded-full text-slate-600 shadow-xl">
+                            <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">Tempo 2X Mix</h3>
+                    <p class="text-sm text-slate-500 leading-relaxed mb-4">Energetic pulse. Heartbeat is sped up to 2x
+                        the music tempo and pitched to 432Hz.</p>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-slate-200/50 px-2 py-1 rounded">V4
+                            Energy</span>
+                        <span
+                            class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
+                    </div>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">432Hz Healing</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Focus on clarity. HPSS denoising removes
-            noise, tuned to the 432Hz healing frequency.</p>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">V2
-              Healing</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
+        </main>
 
-      <!-- V3: Adaptive BPM -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v3">
-        <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
-          <img alt="Deep Meditation"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-sage shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
+        <!-- Player Footer -->
+        <footer id="player-bar"
+            class="fixed bottom-0 left-0 right-0 p-6 z-50 transform translate-y-full transition-transform duration-500">
+            <div
+                class="max-w-[1400px] mx-auto glass-card rounded-[2rem] px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shadow-2xl w-full">
+                <!-- Left Pane -->
+                <div class="flex items-center gap-2 md:gap-4 w-[30%] min-w-0 pr-2">
+                    <div class="shrink-0 size-10 md:size-12 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden"
+                        id="mini-cover">
+                        <img alt="Now Playing" class="w-full h-full object-cover"
+                            src="https://images.unsplash.com/photo-1519834125748-93108dec849c?auto=format&fit=crop&q=80&w=800" />
+                    </div>
+                    <div class="truncate">
+                        <p id="now-playing-title" class="text-xs md:text-sm font-bold text-slate-800 truncate">Utero
+                            Ambient</p>
+                        <p id="now-playing-subtitle"
+                            class="text-[8px] md:text-[10px] font-bold text-primary uppercase tracking-wider truncate">
+                            Currently Playing</p>
+                    </div>
+                </div>
+
+                <!-- Center Pane -->
+                <div class="w-[40%] shrink-0 flex flex-col items-center justify-center gap-1 px-1 md:px-4">
+                    <div id="waveform" class="flex items-center justify-center gap-[6px] h-8 w-full max-w-[400px]">
+                        <!-- Bars added by JS -->
+                    </div>
+                    <div class="w-full max-w-md flex items-center gap-3 mb-1 mt-1">
+                        <span id="current-time" class="text-xs text-slate-500 font-medium w-9 text-right">0:00</span>
+                        <input type="range" id="player-progress-bar" min="0" max="100" value="0" step="0.1"
+                            class="flex-1 accent-primary cursor-pointer" />
+                        <span id="total-time" class="text-xs text-slate-500 font-medium w-9">0:00</span>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <button id="skip-prev-btn"
+                            class="material-symbols-outlined text-slate-400 hover:text-slate-600">skip_previous</button>
+                        <button id="play-pause-btn"
+                            class="bg-slate-800 text-white size-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg">
+                            <i data-lucide="play" id="play-icon" class="fill-current w-6 h-6 ml-1"></i>
+                            <i data-lucide="pause" id="pause-icon" class="fill-current w-6 h-6"
+                                style="display: none;"></i>
+                        </button>
+                        <button id="skip-next-btn"
+                            class="material-symbols-outlined text-slate-400 hover:text-slate-600">skip_next</button>
+                    </div>
+                </div>
+                <!-- Right Pane -->
+                <div class="flex items-center justify-end gap-1 md:gap-2 w-[30%] min-w-0 pl-2">
+                    <div class="flex items-center gap-3 w-32 mr-2">
+                        <i data-lucide="volume-2" class="text-slate-400 w-5 h-5"></i>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7"
+                            class="flex-1 accent-primary" />
+                    </div>
+                    <button id="download-btn" class="p-2 text-slate-400 hover:text-primary transition-colors"
+                        title="Download Mix">
+                        <i data-lucide="download" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                    <button class="p-2 text-slate-400 hover:text-primary transition-colors">
+                        <i data-lucide="heart" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                    <button id="close-player-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                        title="Close Player">
+                        <i data-lucide="x" class="w-5 h-5 md:w-6 md:h-6"></i>
+                    </button>
+                </div>
             </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">Tempo Match</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Adaptive BPM sync. Denoised heartbeat is
-            time-stretched to perfectly match the music's natural tempo.</p>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-sage bg-sage/10 px-2 py-1 rounded">V3
-              Dynamic</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- V4: Double Tempo -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v4">
-        <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
-          <img alt="Acoustic Warmth"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1614850715649-1d0106293bd1?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-slate-600 shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
-            </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">Tempo 2X Mix</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Energetic pulse. Heartbeat is sped up to 2x
-            the music tempo and pitched to 432Hz.</p>
-          <div class="flex items-center gap-2">
-            <span
-              class="text-[10px] font-bold uppercase tracking-widest text-slate-600 bg-slate-200/50 px-2 py-1 rounded">V4
-              Energy</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <!-- Player Footer -->
-    <footer id="player-bar"
-      class="fixed bottom-0 left-0 right-0 p-6 z-50 transform translate-y-full transition-transform duration-500">
-      <div
-        class="max-w-[1400px] mx-auto glass-card rounded-[2rem] px-4 md:px-8 py-3 md:py-4 flex items-center justify-between shadow-2xl w-full">
-        <!-- Left Pane -->
-        <div class="flex items-center gap-2 md:gap-4 w-[30%] min-w-0 pr-2">
-          <div
-            class="shrink-0 size-10 md:size-12 rounded-lg bg-primary/20 flex items-center justify-center overflow-hidden"
-            id="mini-cover">
-            <img alt="Now Playing" class="w-full h-full object-cover"
-              src="https://images.unsplash.com/photo-1519834125748-93108dec849c?auto=format&fit=crop&q=80&w=800" />
-          </div>
-          <div class="truncate">
-            <p id="now-playing-title" class="text-xs md:text-sm font-bold text-slate-800 truncate">Utero
-              Ambient</p>
-            <p id="now-playing-subtitle"
-              class="text-[8px] md:text-[10px] font-bold text-primary uppercase tracking-wider truncate">
-              Currently Playing</p>
-          </div>
-        </div>
-
-        <!-- Center Pane -->
-        <div class="w-[40%] shrink-0 flex flex-col items-center justify-center gap-1 px-1 md:px-4">
-          <div id="waveform" class="flex items-center justify-center gap-[6px] h-8 w-full max-w-[400px]">
-            <!-- Bars added by JS -->
-          </div>
-          <div class="w-full max-w-md flex items-center gap-3 mb-1 mt-1">
-            <span id="current-time" class="text-xs text-slate-500 font-medium w-9 text-right">0:00</span>
-            <input type="range" id="player-progress-bar" min="0" max="100" value="0" step="0.1"
-              class="flex-1 accent-primary cursor-pointer" />
-            <span id="total-time" class="text-xs text-slate-500 font-medium w-9">0:00</span>
-          </div>
-          <div class="flex items-center gap-6">
-            <button id="skip-prev-btn"
-              class="material-symbols-outlined text-slate-400 hover:text-slate-600">skip_previous</button>
-            <button id="play-pause-btn"
-              class="bg-slate-800 text-white size-12 rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-lg">
-              <i data-lucide="play" id="play-icon" class="fill-current w-6 h-6 ml-1"></i>
-              <i data-lucide="pause" id="pause-icon" class="fill-current w-6 h-6" style="display: none;"></i>
-            </button>
-            <button id="skip-next-btn"
-              class="material-symbols-outlined text-slate-400 hover:text-slate-600">skip_next</button>
-          </div>
-        </div>
-        <!-- Right Pane -->
-        <div class="flex items-center justify-end gap-1 md:gap-2 w-[30%] min-w-0 pl-2">
-          <div class="flex items-center gap-3 w-32 mr-2">
-            <i data-lucide="volume-2" class="text-slate-400 w-5 h-5"></i>
-            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.7"
-              class="flex-1 accent-primary" />
-          </div>
-          <button id="download-btn" class="p-2 text-slate-400 hover:text-primary transition-colors"
-            title="Download Mix">
-            <i data-lucide="download" class="w-5 h-5 md:w-6 md:h-6"></i>
-          </button>
-          <button class="p-2 text-slate-400 hover:text-primary transition-colors">
-            <i data-lucide="heart" class="w-5 h-5 md:w-6 md:h-6"></i>
-          </button>
-          <button id="close-player-btn" class="p-2 text-slate-400 hover:text-red-500 transition-colors"
-            title="Close Player">
-            <i data-lucide="x" class="w-5 h-5 md:w-6 md:h-6"></i>
-          </button>
-        </div>
-      </div>
-    </footer>
-  </div>
-
-  <!-- Tempo adjustment modal -->
-  <div id="speed-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
-    <div class="bg-white rounded-2xl p-8 w-96 shadow-2xl">
-      <h2 class="text-xl font-bold mb-6 text-slate-800">Choose tempo</h2>
-      <form id="speed-form" class="space-y-3 mb-6">
-        <div
-          class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-          <input type="radio" id="speed-slow" name="speed" value="Slow" class="w-4 h-4 accent-primary">
-          <label for="speed-slow" class="ml-3 flex-1 cursor-pointer">
-            <span class="font-semibold text-slate-800">Slow</span>
-            <span class="text-xs text-slate-500 ml-2">0.8x</span>
-          </label>
-        </div>
-        <div
-          class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-          <input type="radio" id="speed-normal" name="speed" value="Normal" class="w-4 h-4 accent-primary" checked>
-          <label for="speed-normal" class="ml-3 flex-1 cursor-pointer">
-            <span class="font-semibold text-slate-800">Normal</span>
-            <span class="text-xs text-slate-500 ml-2">1x</span>
-          </label>
-        </div>
-        <div
-          class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
-          <input type="radio" id="speed-fast" name="speed" value="Fast" class="w-4 h-4 accent-primary">
-          <label for="speed-fast" class="ml-3 flex-1 cursor-pointer">
-            <span class="font-semibold text-slate-800">Fast</span>
-            <span class="text-xs text-slate-500 ml-2">1.2x</span>
-          </label>
-        </div>
-      </form>
-      <p class="text-xs text-slate-500 mb-6">Select a tempo to preview and download.</p>
-      <div class="flex justify-end gap-3">
-        <button id="speed-cancel-btn"
-          class="px-6 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors">Cancel</button>
-        <button id="speed-download-btn"
-          class="px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-pink-500 hover:shadow-lg hover:scale-105 transition-all active:scale-95">Download</button>
-      </div>
+        </footer>
     </div>
-  </div>
 
-  <script src="config.js"></script>
-  <script src="main.js"></script>
+    <!-- Tempo adjustment modal -->
+    <div id="speed-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-2xl p-8 w-96 shadow-2xl">
+            <h2 class="text-xl font-bold mb-6 text-slate-800">Choose tempo</h2>
+            <form id="speed-form" class="space-y-3 mb-6">
+                <div
+                    class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
+                    <input type="radio" id="speed-slow" name="speed" value="Slow" class="w-4 h-4 accent-primary">
+                    <label for="speed-slow" class="ml-3 flex-1 cursor-pointer">
+                        <span class="font-semibold text-slate-800">Slow</span>
+                        <span class="text-xs text-slate-500 ml-2">0.8x</span>
+                    </label>
+                </div>
+                <div
+                    class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
+                    <input type="radio" id="speed-normal" name="speed" value="Normal" class="w-4 h-4 accent-primary"
+                        checked>
+                    <label for="speed-normal" class="ml-3 flex-1 cursor-pointer">
+                        <span class="font-semibold text-slate-800">Normal</span>
+                        <span class="text-xs text-slate-500 ml-2">1x</span>
+                    </label>
+                </div>
+                <div
+                    class="flex items-center p-3 border-2 border-slate-200 rounded-lg hover:border-primary hover:bg-primary/5 cursor-pointer transition-all">
+                    <input type="radio" id="speed-fast" name="speed" value="Fast" class="w-4 h-4 accent-primary">
+                    <label for="speed-fast" class="ml-3 flex-1 cursor-pointer">
+                        <span class="font-semibold text-slate-800">Fast</span>
+                        <span class="text-xs text-slate-500 ml-2">1.2x</span>
+                    </label>
+                </div>
+            </form>
+            <p class="text-xs text-slate-500 mb-6">Select a tempo to preview and download.</p>
+            <div class="flex justify-end gap-3">
+                <button id="speed-cancel-btn"
+                    class="px-6 py-2 bg-slate-200 text-slate-800 font-semibold rounded-lg hover:bg-slate-300 transition-colors">Cancel</button>
+                <button id="speed-download-btn"
+                    class="px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-pink-500 hover:shadow-lg hover:scale-105 transition-all active:scale-95">Download</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="main.js"></script>
 </body>
 
 </html>
