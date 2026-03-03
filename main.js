@@ -243,6 +243,12 @@ mixBtn.addEventListener('click', async () => {
     return;
   }
 
+  // Prevent uploading excessively large files that might timeout or get rejected by the server
+  if (pickedFile.size > 15 * 1024 * 1024) {
+    alert("The chosen heartbeat file is too large (over 15MB). Please choose a shorter recording or use a more compressed format (e.g. m4a, mp3) to avoid connection errors.");
+    return;
+  }
+
   mixBtn.disabled = true;
 
   // Reset cards to waiting state
@@ -256,27 +262,51 @@ mixBtn.addEventListener('click', async () => {
     statusBadge.classList.replace('border-red-200', 'border-slate-200');
   });
 
-  // Initial ETA estimation (roughly 8-10s per version if parallelized)
-  statusText.innerText = "⏳ Estimating... (ETA ~30s)";
-  progressBar.classList.remove('hidden');
-  progressFill.style.width = '0%';
-  progressText.innerText = '0/4';
-
-  const startTime = Date.now();
-  let doneCount = 0;
-  const totalCount = 4;
+  // Reset audioBlobs for new mix
+  audioBlobs = { v1: null, v2: null, v3: null, v4: null };
 
   const formData = new FormData();
-  formData.append('picked', pickedFile);
   formData.append('track_name', trackName);
 
   try {
+    // Read the file into memory to circumvent Android Chrome bugs
+    // where FormData fails to stream files from content:// URIs.
+    statusText.innerText = "⏳ Loading file into memory...";
+    try {
+      const fileBuffer = await pickedFile.arrayBuffer();
+      const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
+      formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
+    } catch (bufferErr) {
+      console.error("Failed to read file into memory:", bufferErr);
+      // Fallback: try appending normally if buffer fails (though it risks the Android stream bug again)
+      formData.append('picked', pickedFile);
+    }
+
+    // Initial ETA estimation
+    statusText.innerText = "⏳ Estimating... (ETA ~30s)";
+    progressBar.classList.remove('hidden');
+    progressFill.style.width = '0%';
+    progressText.innerText = '0/4';
+
+    const startTime = Date.now();
+    let doneCount = 0;
+    const totalCount = 4;
+
     const response = await fetch(`${API_BASE}/mix-all`, {
       method: 'POST',
       body: formData
     });
 
-    if (!response.ok) throw new Error("Server error during mixing.");
+    if (!response.ok) {
+      const errText = await response.text();
+      let errorMsg = `Server error ${response.status}`;
+      if (response.status === 413) {
+        errorMsg = "File is too large for the server. Please trim your audio or use a smaller file.";
+      } else if (response.status === 504) {
+        errorMsg = "Server took too long to respond. The mix might still be generating, but the connection dropped.";
+      }
+      throw new Error(errorMsg);
+    }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
@@ -344,6 +374,48 @@ mixBtn.addEventListener('click', async () => {
       }
     }
 
+    // Process any remaining text in the buffer after the stream ends
+    if (buffer.trim()) {
+      try {
+        const result = JSON.parse(buffer.trim());
+        const { version, status, progress, data } = result;
+        if (status === 'done' && data) {
+          doneCount += 1;
+          const binaryString = atob(data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let j = 0; j < binaryString.length; j++) {
+            bytes[j] = binaryString.charCodeAt(j);
+          }
+          const blob = new Blob([bytes], { type: 'audio/flac' });
+          audioBlobs[version] = blob;
+
+          const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+          if (card) {
+            card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+            const statusBadge = card.querySelector('.mix-status');
+            if (statusBadge) {
+              statusBadge.innerText = "READY";
+              statusBadge.classList.replace('text-slate-400', 'text-green-500');
+              statusBadge.classList.replace('border-slate-200', 'border-green-200');
+            }
+          }
+        } else if (status === 'failed') {
+          const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+          if (card) {
+            const statusBadge = card.querySelector('.mix-status');
+            if (statusBadge) {
+              statusBadge.innerText = "FAILED";
+              statusBadge.classList.replace('text-slate-400', 'text-red-500');
+              statusBadge.classList.replace('border-slate-200', 'border-red-200');
+            }
+            card.classList.add('opacity-40', 'pointer-events-none');
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing final buffer line:', buffer, e);
+      }
+    }
+
     const successCount = Object.values(audioBlobs).filter(b => b !== null).length;
     if (successCount > 0) {
       statusText.innerText = `✨ ${successCount}/${totalCount} styles generated! Choose one below.`;
@@ -354,7 +426,7 @@ mixBtn.addEventListener('click', async () => {
 
   } catch (error) {
     console.error(error);
-    statusText.innerText = "❌ Something went wrong.";
+    statusText.innerText = `❌ ${error.message || "Network error or connection dropped."}`;
     progressBar.classList.add('hidden');
   } finally {
     mixBtn.disabled = false;
@@ -407,6 +479,14 @@ function playMix(version, cardElement) {
       isPlaying = false;
       updatePlayPauseUI();
       stopWaveform();
+    },
+    onloaderror: (id, error) => {
+      console.error('Howler Load Error:', id, error);
+      alert(`Audio load error: ${error}`);
+    },
+    onplayerror: (id, error) => {
+      console.error('Howler Play Error:', id, error);
+      alert(`Audio play error: ${error}`);
     }
   });
 
