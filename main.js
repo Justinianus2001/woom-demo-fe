@@ -4,7 +4,7 @@ const API_BASE = window.CONFIG.API_BASE;
 // State
 let currentSound = null;
 let isPlaying = false;
-let audioBlobs = { v1: null, v2: null, v3: null, v4: null };
+let audioBlobs = { v1: null, v2: null, v3: null };
 let activeVersion = null;
 
 // Tempo presets for both preview and server request
@@ -263,7 +263,7 @@ mixBtn.addEventListener('click', async () => {
   });
 
   // Reset audioBlobs for new mix
-  audioBlobs = { v1: null, v2: null, v3: null, v4: null };
+  audioBlobs = { v1: null, v2: null, v3: null };
 
   const formData = new FormData();
   formData.append('track_name', trackName);
@@ -286,11 +286,11 @@ mixBtn.addEventListener('click', async () => {
     statusText.innerText = "⏳ Estimating... (ETA ~30s)";
     progressBar.classList.remove('hidden');
     progressFill.style.width = '0%';
-    progressText.innerText = '0/4';
+    progressText.innerText = '0/3';
 
     const startTime = Date.now();
     let doneCount = 0;
-    const totalCount = 4;
+    const totalCount = 3;
 
     const response = await fetch(`${API_BASE}/mix-all`, {
       method: 'POST',
@@ -341,12 +341,14 @@ mixBtn.addEventListener('click', async () => {
 
             // update card (only this version)
             const card = document.querySelector(`.mix-card[data-version="${version}"]`);
-            card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+            if (card) {
+              card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
 
-            const statusBadge = card.querySelector('.mix-status');
-            statusBadge.innerText = "READY";
-            statusBadge.classList.replace('text-slate-400', 'text-green-500');
-            statusBadge.classList.replace('border-slate-200', 'border-green-200');
+              const statusBadge = card.querySelector('.mix-status');
+              statusBadge.innerText = "READY";
+              statusBadge.classList.replace('text-slate-400', 'text-green-500');
+              statusBadge.classList.replace('border-slate-200', 'border-green-200');
+            }
 
             // update progress bar + ETA
             const [current, total] = progress.split('/').map(Number);
@@ -362,11 +364,13 @@ mixBtn.addEventListener('click', async () => {
 
           } else if (status === 'failed') {
             const card = document.querySelector(`.mix-card[data-version="${version}"]`);
-            const statusBadge = card.querySelector('.mix-status');
-            statusBadge.innerText = "FAILED";
-            statusBadge.classList.replace('text-slate-400', 'text-red-500');
-            statusBadge.classList.replace('border-slate-200', 'border-red-200');
-            card.classList.add('opacity-40', 'pointer-events-none');
+            if (card) {
+              const statusBadge = card.querySelector('.mix-status');
+              statusBadge.innerText = "FAILED";
+              statusBadge.classList.replace('text-slate-400', 'text-red-500');
+              statusBadge.classList.replace('border-slate-200', 'border-red-200');
+              card.classList.add('opacity-40', 'pointer-events-none');
+            }
           }
         } catch (e) {
           console.error('Error parsing line:', line, e);
@@ -579,7 +583,7 @@ function stopWaveform() {
 }
 
 // Skip Controls
-const versionsOrder = ['v1', 'v2', 'v3', 'v4'];
+const versionsOrder = ['v1', 'v2', 'v3'];
 
 skipPrevBtn.addEventListener('click', () => {
   if (!activeVersion) return;
