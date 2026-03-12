@@ -89,9 +89,9 @@
         </div>
         <div class="flex flex-col items-center gap-4">
           <button id="mix-btn" disabled
-            class="bg-slate-800 text-white px-10 py-5 rounded-full font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl disabled:bg-slate-400 disabled:scale-100 flex items-center gap-3">
-            <i data-lucide="power" id="mix-icon" class="animate-pulse"></i>
-            <span id="mix-btn-text">Waking Server...</span>
+            class="relative overflow-hidden bg-slate-800 text-white px-10 py-5 rounded-full font-bold text-lg hover:scale-105 active:scale-95 transition-all shadow-xl disabled:bg-slate-400 disabled:scale-100 flex items-center gap-4">
+            <i data-lucide="power" id="mix-icon"></i>
+            <span id="mix-btn-text" class="relative z-10">Waking Server...</span>
           </button>
           <div
             class="flex items-center gap-2 px-3 py-1.5 bg-white/60 rounded-full border border-white/80 shadow-[0_4px_12px_rgba(0,0,0,0.05)] backdrop-blur-md">
@@ -99,12 +99,12 @@
             <span id="server-status-text" class="text-xs font-bold text-slate-500 uppercase tracking-wider">Checking
               Server</span>
           </div>
-          <p id="status-text" class="text-sm font-semibold text-primary"></p>
+          <p id="status-text" class="hidden text-sm font-semibold text-primary"></p>
           <div id="progress-bar" class="hidden flex items-center gap-2 w-48">
             <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
               <div id="progress-fill" class="h-full bg-primary transition-all duration-500" style="width: 0%"></div>
             </div>
-            <span id="progress-text" class="text-xs font-bold text-slate-600">0/4</span>
+            <span id="progress-text" class="text-xs font-bold text-slate-600">0/3</span>
           </div>
         </div>
       </div>
@@ -290,6 +290,7 @@
         </div>
       </div>
     </footer>
+
   </div>
 
 
