@@ -6,6 +6,7 @@ let currentSound = null;
 let isPlaying = false;
 let audioBlobs = { v1: null, v2: null, v3: null };
 let activeVersion = null;
+let isMixing = false;
 
 // Tempo presets for both preview and server request
 const speedMap = {
@@ -184,8 +185,8 @@ const checkServerHealth = async () => {
       statusIndicatorText.innerText = "SERVER READY";
       statusIndicatorText.className = "text-xs font-bold text-green-600 uppercase tracking-wider";
 
-      // Update Button UI if not already updated
-      if (btnText && btnText.innerText !== "Generate Mixes") {
+      // Update Button UI if not already updated and not currently mixing
+      if (!isMixing && btnText && btnText.innerText !== "Generate Mixes") {
         btn.innerHTML = '<i data-lucide="wand-2"></i><span id="mix-btn-text">Generate Mixes</span>';
         lucide.createIcons();
       }
@@ -201,7 +202,7 @@ const checkServerHealth = async () => {
     statusIndicatorText.className = "text-xs font-bold text-red-500 uppercase tracking-wider";
 
     // Keep Button UI in waking state
-    if (btnText && btnText.innerText !== "Waking Server...") {
+    if (!isMixing && btnText && btnText.innerText !== "Waking Server...") {
       btn.innerHTML = '<i data-lucide="power" class="animate-pulse"></i><span id="mix-btn-text">Waking Server...</span>';
       lucide.createIcons();
     }
@@ -249,18 +250,47 @@ mixBtn.addEventListener('click', async () => {
     return;
   }
 
+  isMixing = true;
   mixBtn.disabled = true;
 
-  // Reset cards to waiting state
+  // Reset cards to waiting state and add processing animation
   document.querySelectorAll('.mix-card').forEach(card => {
-    card.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+    card.classList.add('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
     const statusBadge = card.querySelector('.mix-status');
-    statusBadge.innerText = "WAITING";
+    statusBadge.innerText = "PROCESSING";
+    statusBadge.classList.add('processing-status');
     statusBadge.classList.replace('text-green-500', 'text-slate-400');
     statusBadge.classList.replace('text-red-500', 'text-slate-400');
     statusBadge.classList.replace('border-green-200', 'border-slate-200');
     statusBadge.classList.replace('border-red-200', 'border-slate-200');
   });
+
+  // Update button for inline animation - Strictly Disabled
+  mixBtn.disabled = true;
+  mixBtn.classList.add('mix-btn-active');
+  mixBtn.innerHTML = `
+    <div class="scanning-beam"></div>
+    <div id="btn-liquid-fill" class="liquid-fill">
+        <div class="liquid-wave"></div>
+    </div>
+    <div class="relative z-10 flex items-center gap-3">
+        <i data-lucide="heart" class="heart-pulse-heavy size-6"></i>
+        <span id="mix-btn-text" class="progress-text-glow font-bold tracking-wide">Orchestrating Style... <span id="btn-progress-perc">0%</span></span>
+    </div>
+  `;
+  lucide.createIcons();
+
+  // Create some initial particles for feedback
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('div');
+    p.className = 'floating-particle size-2 bg-primary/40 rounded-full';
+    p.style.left = '50%';
+    p.style.top = '50%';
+    p.style.setProperty('--tw-translate-x', `${(Math.random() - 0.5) * 200}px`);
+    p.style.setProperty('--tw-translate-y', `${(Math.random() - 0.5) * 200}px`);
+    mixBtn.appendChild(p);
+    setTimeout(() => p.remove(), 2000);
+  }
 
   // Reset audioBlobs for new mix
   audioBlobs = { v1: null, v2: null, v3: null };
@@ -290,7 +320,7 @@ mixBtn.addEventListener('click', async () => {
 
     const startTime = Date.now();
     let doneCount = 0;
-    const totalCount = 3;
+    let totalVersionCount = 3; // Number of versions to expect
 
     const response = await fetch(`${API_BASE}/mix-all`, {
       method: 'POST',
@@ -342,34 +372,51 @@ mixBtn.addEventListener('click', async () => {
             // update card (only this version)
             const card = document.querySelector(`.mix-card[data-version="${version}"]`);
             if (card) {
-              card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+              card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
 
               const statusBadge = card.querySelector('.mix-status');
               statusBadge.innerText = "READY";
+              statusBadge.classList.remove('processing-status');
               statusBadge.classList.replace('text-slate-400', 'text-green-500');
               statusBadge.classList.replace('border-slate-200', 'border-green-200');
             }
+          }
 
-            // update progress bar + ETA
+          if (progress) {
             const [current, total] = progress.split('/').map(Number);
-            progressFill.style.width = `${(current / total) * 100}%`;
+            totalVersionCount = total; // Sync with server's reality
+            const perc = Math.round((current / total) * 100);
+            
+            // Inline Button Update (The source of truth)
+            const btnFill = document.getElementById('btn-liquid-fill');
+            const btnPercText = document.getElementById('btn-progress-perc');
+            if (btnFill) btnFill.style.height = `${perc}%`;
+            if (btnPercText) btnPercText.innerText = `${perc}%`;
+
+            // Legacy elements (keep synced but hidden in CSS for now)
+            progressFill.style.width = `${perc}%`;
             progressText.innerText = progress;
 
-            // Recalculate ETA
+            // Recalculate ETA based on steps, not just finished versions
             const elapsed = (Date.now() - startTime) / 1000;
-            const avg = elapsed / doneCount;
-            const remaining = totalCount - doneCount;
-            const eta = Math.round(avg * remaining);
-            statusText.innerText = `⏳ ${doneCount}/${totalCount} done — ETA ${eta}s`;
+            if (current > 0) {
+              const avgPerStep = elapsed / current;
+              const remainingSteps = total - current;
+              const eta = Math.round(avgPerStep * remainingSteps);
+              statusText.innerText = `⏳ ${current}/${total} steps — ETA ${eta}s`;
+            }
+          }
 
-          } else if (status === 'failed') {
+          if (status === 'failed') {
             const card = document.querySelector(`.mix-card[data-version="${version}"]`);
             if (card) {
               const statusBadge = card.querySelector('.mix-status');
               statusBadge.innerText = "FAILED";
+              statusBadge.classList.remove('processing-status');
               statusBadge.classList.replace('text-slate-400', 'text-red-500');
               statusBadge.classList.replace('border-slate-200', 'border-red-200');
               card.classList.add('opacity-40', 'pointer-events-none');
+              card.classList.remove('processing-card');
             }
           }
         } catch (e) {
@@ -395,10 +442,11 @@ mixBtn.addEventListener('click', async () => {
 
           const card = document.querySelector(`.mix-card[data-version="${version}"]`);
           if (card) {
-            card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+            card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
             const statusBadge = card.querySelector('.mix-status');
             if (statusBadge) {
               statusBadge.innerText = "READY";
+              statusBadge.classList.remove('processing-status');
               statusBadge.classList.replace('text-slate-400', 'text-green-500');
               statusBadge.classList.replace('border-slate-200', 'border-green-200');
             }
@@ -409,10 +457,12 @@ mixBtn.addEventListener('click', async () => {
             const statusBadge = card.querySelector('.mix-status');
             if (statusBadge) {
               statusBadge.innerText = "FAILED";
+              statusBadge.classList.remove('processing-status');
               statusBadge.classList.replace('text-slate-400', 'text-red-500');
               statusBadge.classList.replace('border-slate-200', 'border-red-200');
             }
             card.classList.add('opacity-40', 'pointer-events-none');
+            card.classList.remove('processing-card');
           }
         }
       } catch (e) {
@@ -422,9 +472,9 @@ mixBtn.addEventListener('click', async () => {
 
     const successCount = Object.values(audioBlobs).filter(b => b !== null).length;
     if (successCount > 0) {
-      statusText.innerText = `✨ ${successCount}/${totalCount} styles generated! Choose one below.`;
+      statusText.innerText = `✨ Generated! Choose a mix below.`;
     } else {
-      statusText.innerText = "❌ All mixing methods failed.";
+      statusText.innerText = "❌ Mixing failed.";
     }
     progressBar.classList.add('hidden');
 
@@ -433,7 +483,12 @@ mixBtn.addEventListener('click', async () => {
     statusText.innerText = `❌ ${error.message || "Network error or connection dropped."}`;
     progressBar.classList.add('hidden');
   } finally {
+    isMixing = false;
+    mixBtn.classList.remove('mix-btn-active');
     mixBtn.disabled = false;
+    // Reset button icon
+    mixBtn.innerHTML = '<i data-lucide="wand-2"></i><span id="mix-btn-text">Generate Mixes</span>';
+    lucide.createIcons();
   }
 });
 
