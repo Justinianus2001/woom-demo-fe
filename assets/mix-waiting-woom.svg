@@ -1,0 +1,40 @@
+<svg width="1200" height="675" viewBox="0 0 1200 675" preserveAspectRatio="xMidYMid meet"
+    xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+    <title id="title">WOOM Unified Mix Waiting</title>
+    <desc id="desc">Centered WOOM waiting artwork for unified mix card.</desc>
+
+    <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff5f6"/>
+            <stop offset="100%" stop-color="#ffeddc"/>
+        </linearGradient>
+        <linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ef8ca3"/>
+            <stop offset="100%" stop-color="#f1af6d"/>
+        </linearGradient>
+        <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#be6e84" flood-opacity="0.2"/>
+        </filter>
+    </defs>
+
+    <rect x="0" y="0" width="1200" height="675" fill="url(#bg)"/>
+
+    <g opacity="0.26">
+        <circle cx="110" cy="120" r="68" fill="#f6c1c8"/>
+        <circle cx="1060" cy="126" r="58" fill="#f8c2ab"/>
+        <circle cx="1020" cy="560" r="42" fill="#f4b2c0"/>
+        <circle cx="190" cy="548" r="34" fill="#f6c8b6"/>
+    </g>
+
+    <g transform="translate(600 338)" filter="url(#softShadow)">
+        <g transform="translate(-370 -116)">
+            <path d="M130 56C130 16 164 -8 200 -8C241 -8 274 19 278 58C282 97 258 133 217 171L152 231C146 236 138 236 132 231L67 171C26 133 2 97 6 58C10 19 43 -8 84 -8C120 -8 130 16 130 56Z" fill="none" stroke="url(#heartGrad)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M60 124H108L128 84L152 156L171 116H223" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+        </g>
+
+        <g transform="translate(-20 -18)">
+            <text x="0" y="0" font-family="Manrope, Arial, sans-serif" font-size="132" font-weight="800" letter-spacing="4" fill="#3d3d44">WOOM</text>
+            <text x="4" y="70" font-family="Manrope, Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="5" fill="#7a5667">UNIFIED HEARTBEAT MIX</text>
+        </g>
+    </g>
+</svg>

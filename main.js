@@ -4,8 +4,8 @@ const API_BASE = window.CONFIG.API_BASE;
 // State
 let currentSound = null;
 let isPlaying = false;
-let audioBlobs = { v1: null, v2: null, v3: null };
-let activeVersion = null;
+let generatedMixBlob = null;
+let generatedMixVersion = 'v1';
 let isMixing = false;
 
 // Tempo presets for both preview and server request
@@ -52,6 +52,9 @@ const previewTrackBtn = document.getElementById('preview-track-btn');
 const previewIcon = document.getElementById('preview-icon');
 
 console.log('Main.js: UI elements initialized. DownloadBtn:', downloadBtn);
+
+if (skipPrevBtn) skipPrevBtn.classList.add('hidden');
+if (skipNextBtn) skipNextBtn.classList.add('hidden');
 
 let previewSound = null;
 let isPreviewing = false;
@@ -275,7 +278,7 @@ mixBtn.addEventListener('click', async () => {
     </div>
     <div class="relative z-10 flex items-center gap-3">
         <i data-lucide="heart" class="heart-pulse-heavy size-6"></i>
-        <span id="mix-btn-text" class="progress-text-glow font-bold tracking-wide">Orchestrating Style... <span id="btn-progress-perc">0%</span></span>
+        <span id="mix-btn-text" class="progress-text-glow font-bold tracking-wide">Orchestrating Style...</span>
     </div>
   `;
   lucide.createIcons();
@@ -292,8 +295,8 @@ mixBtn.addEventListener('click', async () => {
     setTimeout(() => p.remove(), 2000);
   }
 
-  // Reset audioBlobs for new mix
-  audioBlobs = { v1: null, v2: null, v3: null };
+  // Reset unified result for a new mix. The old multi-version pipeline is kept only in processor.py for rollback.
+  generatedMixBlob = null;
 
   const formData = new FormData();
   formData.append('track_name', trackName);
@@ -313,14 +316,14 @@ mixBtn.addEventListener('click', async () => {
     }
 
     // Initial ETA estimation
-    statusText.innerText = "⏳ Estimating... (ETA ~30s)";
+    statusText.innerText = "⏳ Estimating unified mix... (ETA ~30s)";
     progressBar.classList.remove('hidden');
     progressFill.style.width = '0%';
-    progressText.innerText = '0/3';
+    progressText.innerText = '0/1';
 
     const startTime = Date.now();
     let doneCount = 0;
-    let totalVersionCount = 3; // Number of versions to expect
+    let totalVersionCount = 1; // Unified pipeline only
 
     const response = await fetch(`${API_BASE}/mix-all`, {
       method: 'POST',
@@ -360,25 +363,34 @@ mixBtn.addEventListener('click', async () => {
 
           if (status === 'done' && data) {
             doneCount += 1;
-            // decode audio
+            // Decode the unified audio result
             const binaryString = atob(data);
             const bytes = new Uint8Array(binaryString.length);
             for (let j = 0; j < binaryString.length; j++) {
               bytes[j] = binaryString.charCodeAt(j);
             }
             const blob = new Blob([bytes], { type: 'audio/flac' });
-            audioBlobs[version] = blob;
+            generatedMixBlob = blob;
+            generatedMixVersion = version || 'v1';
 
-            // update card (only this version)
-            const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+            // update the single result card
+            const card = document.getElementById('mix-result-card');
             if (card) {
               card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
 
-              const statusBadge = card.querySelector('.mix-status');
-              statusBadge.innerText = "READY";
-              statusBadge.classList.remove('processing-status');
-              statusBadge.classList.replace('text-slate-400', 'text-green-500');
-              statusBadge.classList.replace('border-slate-200', 'border-green-200');
+              const statusBadge = document.getElementById('mix-result-status');
+              const title = document.getElementById('mix-result-title');
+              const description = document.getElementById('mix-result-description');
+              if (statusBadge) {
+                statusBadge.innerText = "READY";
+                statusBadge.classList.remove('processing-status');
+                statusBadge.classList.replace('text-slate-400', 'text-green-500');
+                statusBadge.classList.replace('border-slate-200', 'border-green-200');
+              }
+              if (title) title.innerText = 'Unified Heartbeat Mix Ready';
+              if (description) {
+                description.innerText = 'A single stabilized mix is ready to play. The output keeps the heartbeat intro, BPM sync limit, and 432Hz tuning in one unified pipeline.';
+              }
             }
           }
 
@@ -386,7 +398,7 @@ mixBtn.addEventListener('click', async () => {
             const [current, total] = progress.split('/').map(Number);
             totalVersionCount = total; // Sync with server's reality
             const perc = Math.round((current / total) * 100);
-            
+
             // Inline Button Update (The source of truth)
             const btnFill = document.getElementById('btn-liquid-fill');
             const btnPercText = document.getElementById('btn-progress-perc');
@@ -408,13 +420,15 @@ mixBtn.addEventListener('click', async () => {
           }
 
           if (status === 'failed') {
-            const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+            const card = document.getElementById('mix-result-card');
             if (card) {
-              const statusBadge = card.querySelector('.mix-status');
-              statusBadge.innerText = "FAILED";
-              statusBadge.classList.remove('processing-status');
-              statusBadge.classList.replace('text-slate-400', 'text-red-500');
-              statusBadge.classList.replace('border-slate-200', 'border-red-200');
+              const statusBadge = document.getElementById('mix-result-status');
+              if (statusBadge) {
+                statusBadge.innerText = "FAILED";
+                statusBadge.classList.remove('processing-status');
+                statusBadge.classList.replace('text-slate-400', 'text-red-500');
+                statusBadge.classList.replace('border-slate-200', 'border-red-200');
+              }
               card.classList.add('opacity-40', 'pointer-events-none');
               card.classList.remove('processing-card');
             }
@@ -438,23 +452,30 @@ mixBtn.addEventListener('click', async () => {
             bytes[j] = binaryString.charCodeAt(j);
           }
           const blob = new Blob([bytes], { type: 'audio/flac' });
-          audioBlobs[version] = blob;
+          generatedMixBlob = blob;
+          generatedMixVersion = version || 'v1';
 
-          const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+          const card = document.getElementById('mix-result-card');
           if (card) {
             card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
-            const statusBadge = card.querySelector('.mix-status');
+            const statusBadge = document.getElementById('mix-result-status');
+            const title = document.getElementById('mix-result-title');
+            const description = document.getElementById('mix-result-description');
             if (statusBadge) {
               statusBadge.innerText = "READY";
               statusBadge.classList.remove('processing-status');
               statusBadge.classList.replace('text-slate-400', 'text-green-500');
               statusBadge.classList.replace('border-slate-200', 'border-green-200');
             }
+            if (title) title.innerText = 'Unified Heartbeat Mix Ready';
+            if (description) {
+              description.innerText = 'A single stabilized mix is ready to play. The output keeps the heartbeat intro, BPM sync limit, and 432Hz tuning in one unified pipeline.';
+            }
           }
         } else if (status === 'failed') {
-          const card = document.querySelector(`.mix-card[data-version="${version}"]`);
+          const card = document.getElementById('mix-result-card');
           if (card) {
-            const statusBadge = card.querySelector('.mix-status');
+            const statusBadge = document.getElementById('mix-result-status');
             if (statusBadge) {
               statusBadge.innerText = "FAILED";
               statusBadge.classList.remove('processing-status');
@@ -470,9 +491,8 @@ mixBtn.addEventListener('click', async () => {
       }
     }
 
-    const successCount = Object.values(audioBlobs).filter(b => b !== null).length;
-    if (successCount > 0) {
-      statusText.innerText = `✨ Generated! Choose a mix below.`;
+    if (generatedMixBlob) {
+      statusText.innerText = `✨ Unified mix generated. Play the single result below.`;
     } else {
       statusText.innerText = "❌ Mixing failed.";
     }
@@ -492,22 +512,22 @@ mixBtn.addEventListener('click', async () => {
   }
 });
 
-// Card Click Handler
-document.querySelectorAll('.mix-card').forEach(card => {
-  card.addEventListener('click', () => {
-    const version = card.getAttribute('data-version');
-    playMix(version, card);
+// Single Result Card Click Handler
+const resultCard = document.getElementById('mix-result-card');
+if (resultCard) {
+  resultCard.addEventListener('click', () => {
+    playMix(resultCard);
   });
-});
+}
 
-function playMix(version, cardElement) {
-  const blob = audioBlobs[version];
+function playMix(cardElement) {
+  const blob = generatedMixBlob;
   if (!blob) return;
 
   // Update Player Bar UI
   playerBar.classList.remove('translate-y-full');
   document.getElementById('now-playing-title').innerText = cardElement.querySelector('h3').innerText;
-  document.getElementById('now-playing-subtitle').innerText = cardElement.querySelector('.text-primary, .text-accent, .text-sage, .text-slate-600').innerText;
+  document.getElementById('now-playing-subtitle').innerText = 'Unified V1';
   document.getElementById('mini-cover').querySelector('img').src = cardElement.querySelector('img').src;
 
   // Pause existing
@@ -550,7 +570,6 @@ function playMix(version, cardElement) {
   });
 
   currentSound.play();
-  activeVersion = version;
 
   // Reset Progress UI
   playerProgressBar.value = 0;
@@ -596,7 +615,6 @@ playerProgressBar.addEventListener('change', (e) => {
 closePlayerBtn.addEventListener('click', () => {
   if (currentSound) currentSound.stop();
   playerBar.classList.add('translate-y-full');
-  activeVersion = null;
 });
 
 playPauseBtn.addEventListener('click', () => {
@@ -638,38 +656,8 @@ function stopWaveform() {
 }
 
 // Skip Controls
-const versionsOrder = ['v1', 'v2', 'v3'];
-
-skipPrevBtn.addEventListener('click', () => {
-  if (!activeVersion) return;
-  let currentIndex = versionsOrder.indexOf(activeVersion);
-  let nextIndex = (currentIndex - 1 + versionsOrder.length) % versionsOrder.length;
-
-  // Allow skipping through successfully generated versions
-  while (!audioBlobs[versionsOrder[nextIndex]] && nextIndex !== currentIndex) {
-    nextIndex = (nextIndex - 1 + versionsOrder.length) % versionsOrder.length;
-  }
-
-  if (nextIndex !== currentIndex && audioBlobs[versionsOrder[nextIndex]]) {
-    const card = document.querySelector(`.mix-card[data-version="${versionsOrder[nextIndex]}"]`);
-    playMix(versionsOrder[nextIndex], card);
-  }
-});
-
-skipNextBtn.addEventListener('click', () => {
-  if (!activeVersion) return;
-  let currentIndex = versionsOrder.indexOf(activeVersion);
-  let nextIndex = (currentIndex + 1) % versionsOrder.length;
-
-  while (!audioBlobs[versionsOrder[nextIndex]] && nextIndex !== currentIndex) {
-    nextIndex = (nextIndex + 1) % versionsOrder.length;
-  }
-
-  if (nextIndex !== currentIndex && audioBlobs[versionsOrder[nextIndex]]) {
-    const card = document.querySelector(`.mix-card[data-version="${versionsOrder[nextIndex]}"]`);
-    playMix(versionsOrder[nextIndex], card);
-  }
-});
+if (skipPrevBtn) skipPrevBtn.disabled = true;
+if (skipNextBtn) skipNextBtn.disabled = true;
 
 // Tempo Control (inline)
 const tempoSelect = document.getElementById('tempo-select');
@@ -686,17 +674,12 @@ closePlayerBtn.addEventListener('click', () => {
     currentSound.stop();
   }
   playerBar.classList.add('translate-y-full');
-  activeVersion = null;
 });
 
 // hook up download button
 downloadBtn.addEventListener('click', async () => {
-  if (!activeVersion) {
-    alert("Please select a mix to play first before downloading.");
-    return;
-  }
-  if (!audioBlobs[activeVersion]) {
-    alert("Audio for this version is not ready yet.");
+  if (!generatedMixBlob) {
+    alert("Please generate the unified mix first before downloading.");
     return;
   }
 
@@ -707,9 +690,8 @@ downloadBtn.addEventListener('click', async () => {
   }
 
   // send blob and speed to server
-  const blob = audioBlobs[activeVersion];
   const formData = new FormData();
-  formData.append('file', blob, `${activeVersion}.flac`); // rename extension to flac
+  formData.append('file', generatedMixBlob, 'unified-v1.flac');
   formData.append('speeds', chosen); // single speed now
 
   try {
