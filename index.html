@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
   <title>Woom Music - Auditory Journey</title>
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap"
     rel="stylesheet" />
   <link
@@ -104,24 +104,22 @@
             <div class="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
               <div id="progress-fill" class="h-full bg-primary transition-all duration-500" style="width: 0%"></div>
             </div>
-            <span id="progress-text" class="text-xs font-bold text-slate-600">0/3</span>
+            <span id="progress-text" class="text-xs font-bold text-slate-600">0/1</span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- Results Grid -->
-    <main id="mix-grid"
-      class="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-[1600px] mx-auto w-full transition-all duration-700">
-      <!-- V1: Utero Ambient -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
+    <!-- Unified Result -->
+    <main id="mix-grid" class="flex-1 max-w-4xl mx-auto w-full transition-all duration-700">
+      <div id="mix-result-card"
+        class="mix-card glass-card rounded-3xl p-6 md:p-8 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
         data-version="v1">
         <div
-          class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100 flex items-center justify-center">
-          <img alt="Utero Ambient"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=800&auto=format&fit=crop" />
+          class="relative w-full aspect-[16/9] mb-6 overflow-hidden rounded-2xl shadow-inner bg-slate-100 flex items-center justify-center">
+          <img alt="Unified Heartbeat Mix"
+            class="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-700"
+            src="assets/mix-waiting-woom.svg" />
           <div
             class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <div class="bg-white/90 p-4 rounded-full text-primary shadow-xl">
@@ -130,75 +128,26 @@
           </div>
         </div>
         <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">Original Flow</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Original tempo preserved. Perfectly trimmed,
-            normalized, and balanced for a natural listen.</p>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 mb-3">
             <span
-              class="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">V1
-              Classic</span>
-            <span
+              class="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2 py-1 rounded">Unified
+              V1</span>
+            <span id="mix-result-status"
               class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
+          </div>
+          <h3 id="mix-result-title" class="text-2xl font-bold text-slate-800 mb-3">Unified Heartbeat Mix</h3>
+          <p id="mix-result-description" class="text-sm md:text-base text-slate-500 leading-relaxed mb-4">
+            One stabilized mix only: heartbeat leads for 4 seconds, BPM is synced within the allowed limit, and the
+            final output is tuned and balanced in a single pipeline.
+          </p>
+          <div class="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-500">
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">4s heartbeat intro</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">HPSS denoise</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">BPM clamp ±15%</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200">432Hz tuned</span>
           </div>
         </div>
       </div>
-
-      <!-- V2: HPSS 432Hz -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v2">
-        <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
-          <img alt="Binaural Peace"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1464802686167-b939a6910659?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-accent shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
-            </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">432Hz Healing</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Focus on clarity. HPSS denoising removes
-            noise, tuned to the 432Hz healing frequency.</p>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-1 rounded">V2
-              Healing</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- V3: Adaptive BPM -->
-      <div
-        class="mix-card glass-card rounded-xl p-6 flex flex-col group cursor-pointer opacity-40 grayscale pointer-events-none"
-        data-version="v3">
-        <div class="relative w-full aspect-[4/5] mb-6 overflow-hidden rounded-lg shadow-inner bg-slate-100">
-          <img alt="Deep Meditation"
-            class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-            src="https://images.unsplash.com/photo-1500462918059-b1a0cb512f1d?q=80&w=800&auto=format&fit=crop" />
-          <div
-            class="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <div class="bg-white/90 p-4 rounded-full text-sage shadow-xl">
-              <i data-lucide="play" class="w-8 h-8 fill-current"></i>
-            </div>
-          </div>
-        </div>
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-slate-800 mb-2">Tempo Match</h3>
-          <p class="text-sm text-slate-500 leading-relaxed mb-4">Adaptive BPM sync. Denoised heartbeat is
-            time-stretched to perfectly match the music's natural tempo.</p>
-          <div class="flex items-center gap-2">
-            <span class="text-[10px] font-bold uppercase tracking-widest text-sage bg-sage/10 px-2 py-1 rounded">V3
-              Dynamic</span>
-            <span
-              class="mix-status text-[10px] font-bold uppercase tracking-widest text-slate-400 border border-slate-200 px-2 py-1 rounded">WAITING</span>
-          </div>
-        </div>
-      </div>
-
     </main>
 
     <!-- Player Footer -->
