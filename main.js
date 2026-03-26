@@ -22,6 +22,38 @@ function formatTime(secs) {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 }
 
+function mapProcessingPhase(message = '', status = 'progress') {
+  const msg = (message || '').toLowerCase();
+
+  if (status === 'done') {
+    return { title: 'Completed', badge: 'READY' };
+  }
+  if (status === 'failed') {
+    return { title: 'Failed', badge: 'FAILED' };
+  }
+
+  if (msg.includes('analyzing heartbeat')) {
+    return { title: 'Analyzing Heartbeat', badge: 'ANALYZING' };
+  }
+  if (msg.includes('analyzing track')) {
+    return { title: 'Analyzing Track', badge: 'ANALYZING' };
+  }
+  if (msg.includes('preprocessing')) {
+    return { title: 'Preprocessing Audio', badge: 'PREPROCESS' };
+  }
+  if (msg.includes('mixing heartbeat')) {
+    return { title: 'Mixing Audio', badge: 'MIXING' };
+  }
+  if (msg.includes('validating')) {
+    return { title: 'Validating Output', badge: 'VALIDATING' };
+  }
+  if (msg.includes('encoding')) {
+    return { title: 'Encoding Audio', badge: 'ENCODING' };
+  }
+
+  return { title: 'Processing Audio', badge: 'PROCESSING' };
+}
+
 // Initialize Lucide Icons
 lucide.createIcons();
 
@@ -278,7 +310,7 @@ mixBtn.addEventListener('click', async () => {
     </div>
     <div class="relative z-10 flex items-center gap-3">
         <i data-lucide="heart" class="heart-pulse-heavy size-6"></i>
-        <span id="mix-btn-text" class="progress-text-glow font-bold tracking-wide">Orchestrating Style...</span>
+        <span id="mix-btn-text" class="progress-text-glow font-bold tracking-wide">Orchestrating Style... <span id="btn-progress-perc">0%</span></span>
     </div>
   `;
   lucide.createIcons();
@@ -304,6 +336,7 @@ mixBtn.addEventListener('click', async () => {
   try {
     // Read the file into memory to circumvent Android Chrome bugs
     // where FormData fails to stream files from content:// URIs.
+    statusText.classList.remove('hidden');
     statusText.innerText = "⏳ Loading file into memory...";
     try {
       const fileBuffer = await pickedFile.arrayBuffer();
@@ -319,7 +352,7 @@ mixBtn.addEventListener('click', async () => {
     statusText.innerText = "⏳ Estimating unified mix... (ETA ~30s)";
     progressBar.classList.remove('hidden');
     progressFill.style.width = '0%';
-    progressText.innerText = '0/1';
+    progressText.innerText = '0%';
 
     const startTime = Date.now();
     let doneCount = 0;
@@ -359,7 +392,7 @@ mixBtn.addEventListener('click', async () => {
 
         try {
           const result = JSON.parse(line);
-          const { version, status, progress, data } = result;
+          const { version, status, progress, data, message } = result;
 
           if (status === 'done' && data) {
             doneCount += 1;
@@ -398,6 +431,7 @@ mixBtn.addEventListener('click', async () => {
             const [current, total] = progress.split('/').map(Number);
             totalVersionCount = total; // Sync with server's reality
             const perc = Math.round((current / total) * 100);
+            const phase = mapProcessingPhase(message, status);
 
             // Inline Button Update (The source of truth)
             const btnFill = document.getElementById('btn-liquid-fill');
@@ -405,9 +439,13 @@ mixBtn.addEventListener('click', async () => {
             if (btnFill) btnFill.style.height = `${perc}%`;
             if (btnPercText) btnPercText.innerText = `${perc}%`;
 
-            // Legacy elements (keep synced but hidden in CSS for now)
             progressFill.style.width = `${perc}%`;
-            progressText.innerText = progress;
+            progressText.innerText = `${perc}%`;
+
+            const statusBadge = document.getElementById('mix-result-status');
+            if (statusBadge && status !== 'done' && status !== 'failed') {
+              statusBadge.innerText = phase.badge;
+            }
 
             // Recalculate ETA based on steps, not just finished versions
             const elapsed = (Date.now() - startTime) / 1000;
@@ -415,7 +453,7 @@ mixBtn.addEventListener('click', async () => {
               const avgPerStep = elapsed / current;
               const remainingSteps = total - current;
               const eta = Math.round(avgPerStep * remainingSteps);
-              statusText.innerText = `⏳ ${current}/${total} steps — ETA ${eta}s`;
+              statusText.innerText = `⏳ ${phase.title} • ${perc}% (ETA ${eta}s)`;
             }
           }
 
@@ -443,7 +481,20 @@ mixBtn.addEventListener('click', async () => {
     if (buffer.trim()) {
       try {
         const result = JSON.parse(buffer.trim());
-        const { version, status, progress, data } = result;
+        const { version, status, progress, data, message } = result;
+        if (progress) {
+          const [current, total] = progress.split('/').map(Number);
+          const perc = Math.round((current / total) * 100);
+          const phase = mapProcessingPhase(message, status);
+          progressFill.style.width = `${perc}%`;
+          progressText.innerText = `${perc}%`;
+          statusText.innerText = `⏳ ${phase.title} • ${perc}%`;
+
+          const btnFill = document.getElementById('btn-liquid-fill');
+          const btnPercText = document.getElementById('btn-progress-perc');
+          if (btnFill) btnFill.style.height = `${perc}%`;
+          if (btnPercText) btnPercText.innerText = `${perc}%`;
+        }
         if (status === 'done' && data) {
           doneCount += 1;
           const binaryString = atob(data);
