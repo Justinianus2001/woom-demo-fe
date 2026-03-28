@@ -1,5 +1,6 @@
 // Configuration - Load from config.js injected variables, fallback to localhost
 const API_BASE = window.CONFIG.API_BASE;
+const TRACK_NAMES = Array.isArray(window.CONFIG.TRACK_NAMES) ? window.CONFIG.TRACK_NAMES : [];
 
 // State
 let currentSound = null;
@@ -14,6 +15,11 @@ const speedMap = {
   Normal: 1.0,
   Fast: 1.2
 };
+
+function buildTrackPath(trackName) {
+  // Keep slash in endpoint path and encode only the filename segment.
+  return `${API_BASE}/tracks/${encodeURIComponent(trackName)}`;
+}
 
 function formatTime(secs) {
   if (isNaN(secs)) return '0:00';
@@ -118,7 +124,7 @@ previewTrackBtn.addEventListener('click', () => {
   lucide.createIcons();
 
   previewSound = new Howl({
-    src: [`${API_BASE}/tracks/${trackName}`],
+    src: [buildTrackPath(trackName)],
     html5: true,
     autoplay: true,
     onplay: () => {
@@ -148,31 +154,29 @@ trackSelect.addEventListener('change', () => {
   if (isPreviewing) stopTrackPreview();
 });
 
-// Load available tracks on startup
-const loadTracks = async () => {
-  try {
-    const resp = await fetch(`${API_BASE}/tracks`);
-    const data = await resp.json();
-    trackSelect.innerHTML = '';
-    if (data.tracks && data.tracks.length > 0) {
-      data.tracks.forEach(track => {
-        const opt = document.createElement('option');
-        opt.value = track;
-        opt.textContent = track;
-        trackSelect.appendChild(opt);
-      });
-      trackSelect.value = data.tracks[0];
-    } else {
-      const opt = document.createElement('option');
-      opt.value = '';
-      opt.textContent = 'No tracks available';
-      opt.disabled = true;
-      trackSelect.appendChild(opt);
-    }
-  } catch (e) {
-    console.error('Error loading tracks:', e);
-    trackSelect.innerHTML = '<option>Error loading tracks</option>';
+const initTrackSelect = () => {
+  trackSelect.innerHTML = '';
+
+  if (TRACK_NAMES.length === 0) {
+    trackSelect.disabled = true;
+    previewTrackBtn.disabled = true;
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No tracks configured';
+    opt.disabled = true;
+    trackSelect.appendChild(opt);
+    return;
   }
+
+  trackSelect.disabled = false;
+  previewTrackBtn.disabled = false;
+  TRACK_NAMES.forEach(track => {
+    const opt = document.createElement('option');
+    opt.value = track;
+    opt.textContent = track;
+    trackSelect.appendChild(opt);
+  });
+  trackSelect.value = TRACK_NAMES[0];
 };
 
 function updateProgress() {
@@ -247,9 +251,9 @@ const checkServerHealth = async () => {
   setTimeout(checkServerHealth, 6000);
 };
 
-// Start healthcheck and load tracks on load
+// Start healthcheck and initialize configured tracks on load
 checkServerHealth();
-loadTracks();
+initTrackSelect();
 
 // Setup Waveform
 for (let i = 0; i < 40; i++) {
@@ -370,8 +374,23 @@ mixBtn.addEventListener('click', async () => {
         errorMsg = "File is too large for the server. Please trim your audio or use a smaller file.";
       } else if (response.status === 504) {
         errorMsg = "Server took too long to respond. The mix might still be generating, but the connection dropped.";
+      } else {
+        try {
+          const maybeJson = JSON.parse(errText);
+          if (maybeJson && maybeJson.detail) {
+            errorMsg = maybeJson.detail;
+          }
+        } catch (_ignored) {
+          if (errText && errText.trim()) {
+            errorMsg = errText.trim();
+          }
+        }
       }
       throw new Error(errorMsg);
+    }
+
+    if (!response.body) {
+      throw new Error('Streaming response is not available in this browser.');
     }
 
     const reader = response.body.getReader();
