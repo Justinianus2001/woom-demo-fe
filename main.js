@@ -1,6 +1,5 @@
 // Configuration - Load from config.js injected variables, fallback to localhost
 const API_BASE = window.CONFIG.API_BASE;
-const TRACK_NAMES = Array.isArray(window.CONFIG.TRACK_NAMES) ? window.CONFIG.TRACK_NAMES : [];
 
 // State
 let currentSound = null;
@@ -8,6 +7,10 @@ let isPlaying = false;
 let generatedMixBlob = null;
 let generatedMixVersion = 'v1';
 let isMixing = false;
+let heartbeatSourceMode = 'upload';
+let trackNames = [];
+let heartbeatNames = [];
+let trackLibraryStatusMessage = '';
 
 // Tempo presets for both preview and server request
 const speedMap = {
@@ -17,8 +20,7 @@ const speedMap = {
 };
 
 function buildTrackPath(trackName) {
-  // Keep slash in endpoint path and encode only the filename segment.
-  return `${API_BASE}/tracks/${encodeURIComponent(trackName)}`;
+  return `${API_BASE}/tracks/audio/${encodeURIComponent(trackName)}`;
 }
 
 function formatTime(secs) {
@@ -88,6 +90,15 @@ const skipNextBtn = document.getElementById('skip-next-btn');
 const downloadBtn = document.getElementById('download-btn');
 const previewTrackBtn = document.getElementById('preview-track-btn');
 const previewIcon = document.getElementById('preview-icon');
+const heartbeatSelect = document.getElementById('heartbeat-select');
+const previewHeartbeatBtn = document.getElementById('preview-heartbeat-btn');
+const previewHeartbeatIcon = document.getElementById('preview-heartbeat-icon');
+const heartbeatModeUploadBtn = document.getElementById('heartbeat-mode-upload');
+const heartbeatModeLibraryBtn = document.getElementById('heartbeat-mode-library');
+const heartbeatUploadWrap = document.getElementById('heartbeat-upload-wrap');
+const heartbeatLibraryWrap = document.getElementById('heartbeat-library-wrap');
+const trackStatusText = document.getElementById('track-status-text');
+const heartbeatLibraryStatusText = document.getElementById('heartbeat-library-status-text');
 
 console.log('Main.js: UI elements initialized. DownloadBtn:', downloadBtn);
 
@@ -95,88 +106,279 @@ if (skipPrevBtn) skipPrevBtn.classList.add('hidden');
 if (skipNextBtn) skipNextBtn.classList.add('hidden');
 
 let previewSound = null;
-let isPreviewing = false;
+let previewKind = null;
 
-const stopTrackPreview = () => {
+const setPreviewButtonIdle = (kind) => {
+  const icon = kind === 'heartbeat' ? previewHeartbeatIcon : previewIcon;
+  const button = kind === 'heartbeat' ? previewHeartbeatBtn : previewTrackBtn;
+  if (!icon || !button) return;
+
+  icon.setAttribute('data-lucide', 'play-circle');
+  icon.classList.remove('animate-spin');
+  button.classList.remove('text-green-500', 'bg-green-50');
+};
+
+const stopPreview = () => {
   if (previewSound) {
     previewSound.stop();
     previewSound.unload();
     previewSound = null;
   }
-  isPreviewing = false;
-  previewIcon.setAttribute('data-lucide', 'play-circle');
-  previewTrackBtn.classList.remove('text-green-500', 'bg-green-50');
+  if (previewKind) {
+    setPreviewButtonIdle(previewKind);
+  }
+  previewKind = null;
   lucide.createIcons();
 };
 
+const playPreview = (fileName, kind) => {
+  if (!fileName) return;
+  const icon = kind === 'heartbeat' ? previewHeartbeatIcon : previewIcon;
+  const button = kind === 'heartbeat' ? previewHeartbeatBtn : previewTrackBtn;
+  if (!icon || !button) return;
+
+  if (previewSound) {
+    stopPreview();
+  }
+
+  previewKind = kind;
+  icon.setAttribute('data-lucide', 'loader-2');
+  icon.classList.add('animate-spin');
+  lucide.createIcons();
+
+  previewSound = new Howl({
+    src: [buildTrackPath(fileName)],
+    html5: true,
+    autoplay: true,
+    onplay: () => {
+      icon.setAttribute('data-lucide', 'pause-circle');
+      icon.classList.remove('animate-spin');
+      button.classList.add('text-green-500', 'bg-green-50');
+      lucide.createIcons();
+
+      setTimeout(() => {
+        if (previewKind === kind && previewSound) {
+          stopPreview();
+        }
+      }, 20000);
+    },
+    onend: stopPreview,
+    onloaderror: () => {
+      alert('Error loading track preview');
+      stopPreview();
+    },
+    onplayerror: () => {
+      alert('Error playing track preview');
+      stopPreview();
+    }
+  });
+};
+
 previewTrackBtn.addEventListener('click', () => {
-  if (isPreviewing) {
-    stopTrackPreview();
+  if (previewKind === 'track') {
+    stopPreview();
     return;
   }
 
   const trackName = trackSelect.value;
-  if (!trackName) return;
-
-  isPreviewing = true;
-  previewIcon.setAttribute('data-lucide', 'loader-2');
-  previewIcon.classList.add('animate-spin');
-  lucide.createIcons();
-
-  previewSound = new Howl({
-    src: [buildTrackPath(trackName)],
-    html5: true,
-    autoplay: true,
-    onplay: () => {
-      previewIcon.setAttribute('data-lucide', 'pause-circle');
-      previewIcon.classList.remove('animate-spin');
-      previewTrackBtn.classList.add('text-green-500', 'bg-green-50');
-      lucide.createIcons();
-
-      // Stop preview after 20 seconds
-      setTimeout(() => {
-        if (isPreviewing && previewSound) stopTrackPreview();
-      }, 20000);
-    },
-    onend: stopTrackPreview,
-    onloaderror: () => {
-      alert('Error loading track preview');
-      stopTrackPreview();
-    },
-    onplayerror: () => {
-      alert('Error playing track preview');
-      stopTrackPreview();
-    }
-  });
+  playPreview(trackName, 'track');
 });
+
+if (previewHeartbeatBtn) {
+  previewHeartbeatBtn.addEventListener('click', () => {
+    if (previewKind === 'heartbeat') {
+      stopPreview();
+      return;
+    }
+
+    const heartbeatName = heartbeatSelect ? heartbeatSelect.value : '';
+    playPreview(heartbeatName, 'heartbeat');
+  });
+}
 
 trackSelect.addEventListener('change', () => {
-  if (isPreviewing) stopTrackPreview();
+  if (previewKind === 'track') stopPreview();
 });
+
+if (heartbeatSelect) {
+  heartbeatSelect.addEventListener('change', () => {
+    if (previewKind === 'heartbeat') stopPreview();
+  });
+}
+
+const renderHeartbeatModeButtons = () => {
+  if (!heartbeatModeUploadBtn || !heartbeatModeLibraryBtn) return;
+
+  const uploadActive = heartbeatSourceMode === 'upload';
+  heartbeatModeUploadBtn.className = uploadActive
+    ? 'toggle-pill toggle-pill--active'
+    : 'toggle-pill toggle-pill--inactive';
+  heartbeatModeUploadBtn.setAttribute('aria-pressed', String(uploadActive));
+
+  const canUseLibrary = heartbeatNames.length > 0;
+  const libraryActive = heartbeatSourceMode === 'library';
+  heartbeatModeLibraryBtn.disabled = !canUseLibrary;
+  heartbeatModeLibraryBtn.className = libraryActive
+    ? 'toggle-pill toggle-pill--active'
+    : 'toggle-pill toggle-pill--inactive';
+  heartbeatModeLibraryBtn.setAttribute('aria-pressed', String(libraryActive));
+  if (!canUseLibrary) {
+    heartbeatModeLibraryBtn.classList.add('toggle-pill--disabled');
+  } else {
+    heartbeatModeLibraryBtn.classList.remove('toggle-pill--disabled');
+  }
+};
+
+const setHeartbeatSourceMode = (mode) => {
+  if (mode === 'library' && heartbeatNames.length === 0) {
+    heartbeatSourceMode = 'upload';
+  } else {
+    heartbeatSourceMode = mode;
+  }
+
+  if (heartbeatUploadWrap) {
+    heartbeatUploadWrap.classList.toggle('hidden', heartbeatSourceMode !== 'upload');
+  }
+  if (heartbeatLibraryWrap) {
+    heartbeatLibraryWrap.classList.toggle('hidden', heartbeatSourceMode !== 'library');
+  }
+
+  renderHeartbeatModeButtons();
+};
+
+heartbeatModeUploadBtn.addEventListener('click', () => setHeartbeatSourceMode('upload'));
+heartbeatModeLibraryBtn.addEventListener('click', () => setHeartbeatSourceMode('library'));
 
 const initTrackSelect = () => {
   trackSelect.innerHTML = '';
+  trackStatusText.textContent = '';
+  trackStatusText.classList.add('hidden');
 
-  if (TRACK_NAMES.length === 0) {
+  if (trackNames.length === 0) {
     trackSelect.disabled = true;
     previewTrackBtn.disabled = true;
     const opt = document.createElement('option');
     opt.value = '';
-    opt.textContent = 'No tracks configured';
+    opt.textContent = 'No tracks found on R2';
     opt.disabled = true;
     trackSelect.appendChild(opt);
+
+    if (trackLibraryStatusMessage) {
+      trackStatusText.textContent = `Unable to load tracks: ${trackLibraryStatusMessage}`;
+      trackStatusText.classList.remove('hidden');
+      trackStatusText.classList.remove('text-slate-500');
+      trackStatusText.classList.add('text-amber-600');
+    } else {
+      trackStatusText.textContent = 'No tracks found on R2. Confirm the backend can access Cloudflare R2 or try again later.';
+      trackStatusText.classList.remove('hidden');
+      trackStatusText.classList.remove('text-amber-600');
+      trackStatusText.classList.add('text-slate-500');
+    }
     return;
   }
 
   trackSelect.disabled = false;
   previewTrackBtn.disabled = false;
-  TRACK_NAMES.forEach(track => {
+  trackNames.forEach(track => {
     const opt = document.createElement('option');
     opt.value = track;
     opt.textContent = track;
     trackSelect.appendChild(opt);
   });
-  trackSelect.value = TRACK_NAMES[0];
+  trackSelect.value = trackNames[0];
+};
+
+const initHeartbeatSelect = () => {
+  if (!heartbeatSelect) return;
+
+  heartbeatSelect.innerHTML = '';
+  heartbeatLibraryStatusText.textContent = '';
+  heartbeatLibraryStatusText.classList.add('hidden');
+
+  if (heartbeatNames.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.textContent = 'No heartbeat files found';
+    heartbeatSelect.appendChild(opt);
+    heartbeatSelect.disabled = true;
+    if (previewHeartbeatBtn) previewHeartbeatBtn.disabled = true;
+    setHeartbeatSourceMode('upload');
+
+    heartbeatLibraryStatusText.textContent = 'Resource File library is empty. Upload a heartbeat recording or use Upload File mode.';
+    heartbeatLibraryStatusText.classList.remove('hidden');
+    heartbeatLibraryStatusText.classList.remove('text-amber-600');
+    heartbeatLibraryStatusText.classList.add('text-slate-500');
+    return;
+  }
+
+  heartbeatNames.forEach(track => {
+    const opt = document.createElement('option');
+    opt.value = track;
+    opt.textContent = track;
+    heartbeatSelect.appendChild(opt);
+  });
+
+  heartbeatSelect.disabled = false;
+  heartbeatSelect.value = heartbeatNames[0];
+  if (previewHeartbeatBtn) previewHeartbeatBtn.disabled = false;
+};
+
+const normalizeTrackLibrary = (tracks) => {
+  const trackbeats = [];
+  const heartbeats = [];
+
+  if (!Array.isArray(tracks)) {
+    return { trackbeats, heartbeats };
+  }
+
+  tracks.forEach((item) => {
+    if (!item) return;
+
+    if (typeof item === 'string') {
+      trackbeats.push(item);
+      return;
+    }
+
+    const trackName = String(item.track_name || item.name || '').trim();
+    if (!trackName) return;
+
+    const fileType = String(item.file_type || '').toLowerCase();
+    if (fileType === 'heartbeat') {
+      heartbeats.push(trackName);
+      return;
+    }
+    trackbeats.push(trackName);
+  });
+
+  return {
+    trackbeats: [...new Set(trackbeats)],
+    heartbeats: [...new Set(heartbeats)],
+  };
+};
+
+const fetchTrackLibrary = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/tracks`, { method: 'GET' });
+    if (!response.ok) {
+      throw new Error(`Cannot load track library (status ${response.status})`);
+    }
+
+    const payload = await response.json();
+    const { trackbeats, heartbeats } = normalizeTrackLibrary(payload.tracks);
+    trackNames = trackbeats;
+    heartbeatNames = heartbeats;
+
+    console.log(`Loaded ${trackNames.length} tracks and ${heartbeatNames.length} heartbeats from API.`);
+  } catch (error) {
+    console.warn('Unable to load track library from API:', error);
+    trackLibraryStatusMessage = error.message || 'Unknown error';
+    trackNames = [];
+    heartbeatNames = [];
+  }
+
+  initTrackSelect();
+  initHeartbeatSelect();
+  renderHeartbeatModeButtons();
 };
 
 function updateProgress() {
@@ -254,6 +456,9 @@ const checkServerHealth = async () => {
 // Start healthcheck and initialize configured tracks on load
 checkServerHealth();
 initTrackSelect();
+initHeartbeatSelect();
+setHeartbeatSourceMode('upload');
+fetchTrackLibrary();
 
 // Setup Waveform
 for (let i = 0; i < 40; i++) {
@@ -272,21 +477,30 @@ pickedInput.addEventListener('change', (e) => {
 mixBtn.addEventListener('click', async () => {
   const pickedFile = pickedInput.files[0];
   const trackName = trackSelect.value;
+  const heartbeatName = heartbeatSelect ? heartbeatSelect.value : '';
+  const useLibraryHeartbeat = heartbeatSourceMode === 'library';
 
   if (!trackName) {
     alert("Please select a background music track.");
     return;
   }
 
-  if (!pickedFile) {
-    alert("Please select a heartbeat file.");
-    return;
-  }
+  if (useLibraryHeartbeat) {
+    if (!heartbeatName) {
+      alert("Please choose a heartbeat track from Resource File.");
+      return;
+    }
+  } else {
+    if (!pickedFile) {
+      alert("Please select a heartbeat file.");
+      return;
+    }
 
-  // Prevent uploading excessively large files that might timeout or get rejected by the server
-  if (pickedFile.size > 15 * 1024 * 1024) {
-    alert("The chosen heartbeat file is too large (over 15MB). Please choose a shorter recording or use a more compressed format (e.g. m4a, mp3) to avoid connection errors.");
-    return;
+    // Prevent uploading excessively large files that might timeout or get rejected by the server
+    if (pickedFile.size > 15 * 1024 * 1024) {
+      alert("The chosen heartbeat file is too large (over 15MB). Please choose a shorter recording or use a more compressed format (e.g. m4a, mp3) to avoid connection errors.");
+      return;
+    }
   }
 
   isMixing = true;
@@ -336,20 +550,26 @@ mixBtn.addEventListener('click', async () => {
 
   const formData = new FormData();
   formData.append('track_name', trackName);
+  const mixEndpoint = useLibraryHeartbeat ? '/mix-file' : '/mix-all';
 
   try {
-    // Read the file into memory to circumvent Android Chrome bugs
-    // where FormData fails to stream files from content:// URIs.
     statusText.classList.remove('hidden');
-    statusText.innerText = "⏳ Loading file into memory...";
-    try {
-      const fileBuffer = await pickedFile.arrayBuffer();
-      const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
-      formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
-    } catch (bufferErr) {
-      console.error("Failed to read file into memory:", bufferErr);
-      // Fallback: try appending normally if buffer fails (though it risks the Android stream bug again)
-      formData.append('picked', pickedFile);
+    if (useLibraryHeartbeat) {
+      statusText.innerText = '⏳ Loading heartbeat from Resource File...';
+      formData.append('heartbeat_name', heartbeatName);
+    } else {
+      // Read the file into memory to circumvent Android Chrome bugs
+      // where FormData fails to stream files from content:// URIs.
+      statusText.innerText = '⏳ Loading file into memory...';
+      try {
+        const fileBuffer = await pickedFile.arrayBuffer();
+        const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
+        formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
+      } catch (bufferErr) {
+        console.error('Failed to read file into memory:', bufferErr);
+        // Fallback: try appending normally if buffer fails (though it risks the Android stream bug again)
+        formData.append('picked', pickedFile);
+      }
     }
 
     // Initial ETA estimation
@@ -362,7 +582,7 @@ mixBtn.addEventListener('click', async () => {
     let doneCount = 0;
     let totalVersionCount = 1; // Unified pipeline only
 
-    const response = await fetch(`${API_BASE}/mix-all`, {
+    const response = await fetch(`${API_BASE}${mixEndpoint}`, {
       method: 'POST',
       body: formData
     });
