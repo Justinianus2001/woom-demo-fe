@@ -6,8 +6,8 @@ let currentSound = null;
 let isPlaying = false;
 let generatedMixBlob = null;
 let generatedMixVersion = 'v1';
-let generatedMixFormat = 'flac';
-let generatedMixMimeType = 'audio/flac';
+let generatedMixFormat = 'mp3';
+let generatedMixMimeType = 'audio/mpeg';
 let isMixing = false;
 let heartbeatSourceMode = 'upload';
 let trackNames = [];
@@ -34,7 +34,7 @@ function formatTime(secs) {
 
 function normalizeMixFormat(rawFormat) {
   const fmt = String(rawFormat || '').trim().toLowerCase();
-  return fmt === 'mp3' ? 'mp3' : 'flac';
+  return fmt === 'flac' ? 'flac' : 'mp3';
 }
 
 function resolveMixMimeType(format, providedMimeType = '') {
@@ -45,6 +45,11 @@ function resolveMixMimeType(format, providedMimeType = '') {
 }
 
 function getPreferredMixFormat() {
+  const preferLossless = Boolean(window.CONFIG && window.CONFIG.PREFER_LOSSLESS_FLAC);
+  if (!preferLossless) {
+    return 'mp3';
+  }
+
   try {
     if (typeof Howler !== 'undefined' && typeof Howler.codecs === 'function' && Howler.codecs('flac')) {
       return 'flac';
