@@ -12,6 +12,8 @@ let isMixing = false;
 let heartbeatSourceMode = 'upload';
 let trackNames = [];
 let heartbeatNames = [];
+let trackDisplayNames = {};
+let heartbeatDisplayNames = {};
 let trackLibraryStatusMessage = '';
 
 // Tempo presets for both preview and server request
@@ -326,7 +328,7 @@ const initTrackSelect = () => {
   trackNames.forEach(track => {
     const opt = document.createElement('option');
     opt.value = track;
-    opt.textContent = track;
+    opt.textContent = trackDisplayNames[track] || track;
     trackSelect.appendChild(opt);
   });
   trackSelect.value = trackNames[0];
@@ -358,7 +360,7 @@ const initHeartbeatSelect = () => {
   heartbeatNames.forEach(track => {
     const opt = document.createElement('option');
     opt.value = track;
-    opt.textContent = track;
+    opt.textContent = heartbeatDisplayNames[track] || track;
     heartbeatSelect.appendChild(opt);
   });
 
@@ -370,9 +372,13 @@ const initHeartbeatSelect = () => {
 const normalizeTrackLibrary = (tracks) => {
   const trackbeats = [];
   const heartbeats = [];
+  const trackbeatLabels = {};
+  const heartbeatLabels = {};
+  const seenTrackLabels = new Set();
+  const seenHeartbeatLabels = new Set();
 
   if (!Array.isArray(tracks)) {
-    return { trackbeats, heartbeats };
+    return { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels };
   }
 
   tracks.forEach((item) => {
@@ -380,23 +386,41 @@ const normalizeTrackLibrary = (tracks) => {
 
     if (typeof item === 'string') {
       trackbeats.push(item);
+      trackbeatLabels[item] = item;
       return;
     }
 
     const trackName = String(item.track_name || item.name || '').trim();
     if (!trackName) return;
+    const displayName = String(item.display_name || item.original_name || trackName).trim() || trackName;
 
     const fileType = String(item.file_type || '').toLowerCase();
-    if (fileType === 'heartbeat') {
+    const normalizedType = fileType.replace(/[\s_-]/g, '');
+    const normalizedLabel = displayName.toLowerCase();
+    if (normalizedType === 'heartbeat' || normalizedType === 'heartbeart') {
+      if (seenHeartbeatLabels.has(normalizedLabel)) {
+        return;
+      }
+      seenHeartbeatLabels.add(normalizedLabel);
       heartbeats.push(trackName);
+      heartbeatLabels[trackName] = displayName;
       return;
     }
+
+    if (seenTrackLabels.has(normalizedLabel)) {
+      return;
+    }
+    seenTrackLabels.add(normalizedLabel);
+
     trackbeats.push(trackName);
+    trackbeatLabels[trackName] = displayName;
   });
 
   return {
     trackbeats: [...new Set(trackbeats)],
     heartbeats: [...new Set(heartbeats)],
+    trackbeatLabels,
+    heartbeatLabels,
   };
 };
 
@@ -408,9 +432,11 @@ const fetchTrackLibrary = async () => {
     }
 
     const payload = await response.json();
-    const { trackbeats, heartbeats } = normalizeTrackLibrary(payload.tracks);
+    const { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels } = normalizeTrackLibrary(payload.tracks);
     trackNames = trackbeats;
     heartbeatNames = heartbeats;
+    trackDisplayNames = trackbeatLabels;
+    heartbeatDisplayNames = heartbeatLabels;
 
     console.log(`Loaded ${trackNames.length} tracks and ${heartbeatNames.length} heartbeats from API.`);
   } catch (error) {
@@ -418,6 +444,8 @@ const fetchTrackLibrary = async () => {
     trackLibraryStatusMessage = error.message || 'Unknown error';
     trackNames = [];
     heartbeatNames = [];
+    trackDisplayNames = {};
+    heartbeatDisplayNames = {};
   }
 
   initTrackSelect();
@@ -598,6 +626,7 @@ mixBtn.addEventListener('click', async () => {
   formData.append('track_name', trackName);
   formData.append('output_format', generatedMixFormat);
   const mixEndpoint = useLibraryHeartbeat ? '/mix-file' : '/mix-all';
+  const shouldRefreshLibraryAfterMix = !useLibraryHeartbeat;
 
   try {
     statusText.classList.remove('hidden');
@@ -628,6 +657,7 @@ mixBtn.addEventListener('click', async () => {
     const startTime = Date.now();
     let doneCount = 0;
     let totalVersionCount = 1; // Unified pipeline only
+    let lastMixError = '';
 
     const response = await fetch(`${API_BASE}${mixEndpoint}`, {
       method: 'POST',
@@ -678,7 +708,7 @@ mixBtn.addEventListener('click', async () => {
 
         try {
           const result = JSON.parse(line);
-          const { version, status, progress, data, message, audio_format, mime_type } = result;
+          const { version, status, progress, data, message, error, audio_format, mime_type } = result;
 
           if (status === 'done' && data) {
             doneCount += 1;
@@ -736,6 +766,12 @@ mixBtn.addEventListener('click', async () => {
           }
 
           if (status === 'failed') {
+            const failureReason = String(error || message || '').trim();
+            if (failureReason) {
+              lastMixError = failureReason;
+              statusText.innerText = `❌ Mixing failed: ${failureReason}`;
+            }
+
             const card = document.getElementById('mix-result-card');
             if (card) {
               const statusBadge = document.getElementById('mix-result-status');
@@ -759,7 +795,7 @@ mixBtn.addEventListener('click', async () => {
     if (buffer.trim()) {
       try {
         const result = JSON.parse(buffer.trim());
-        const { version, status, progress, data, message, audio_format, mime_type } = result;
+        const { version, status, progress, data, message, error, audio_format, mime_type } = result;
         if (progress) {
           const [current, total] = progress.split('/').map(Number);
           const perc = Math.round((current / total) * 100);
@@ -795,6 +831,12 @@ mixBtn.addEventListener('click', async () => {
             }
           }
         } else if (status === 'failed') {
+          const failureReason = String(error || message || '').trim();
+          if (failureReason) {
+            lastMixError = failureReason;
+            statusText.innerText = `❌ Mixing failed: ${failureReason}`;
+          }
+
           const card = document.getElementById('mix-result-card');
           if (card) {
             const statusBadge = document.getElementById('mix-result-status');
@@ -816,7 +858,9 @@ mixBtn.addEventListener('click', async () => {
     if (generatedMixBlob) {
       statusText.innerText = `✨ Unified mix generated. Play the single result below.`;
     } else {
-      statusText.innerText = "❌ Mixing failed.";
+      statusText.innerText = lastMixError
+        ? `❌ Mixing failed: ${lastMixError}`
+        : "❌ Mixing failed.";
     }
     progressBar.classList.add('hidden');
 
@@ -825,6 +869,10 @@ mixBtn.addEventListener('click', async () => {
     statusText.innerText = `❌ ${error.message || "Network error or connection dropped."}`;
     progressBar.classList.add('hidden');
   } finally {
+    if (shouldRefreshLibraryAfterMix) {
+      fetchTrackLibrary();
+    }
+
     isMixing = false;
     mixBtn.classList.remove('mix-btn-active');
     mixBtn.disabled = false;
