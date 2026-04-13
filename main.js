@@ -6,6 +6,8 @@ let currentSound = null;
 let isPlaying = false;
 let generatedMixBlob = null;
 let generatedMixVersion = 'v1';
+let generatedMixFormat = 'flac';
+let generatedMixMimeType = 'audio/flac';
 let isMixing = false;
 let heartbeatSourceMode = 'upload';
 let trackNames = [];
@@ -28,6 +30,45 @@ function formatTime(secs) {
   const minutes = Math.floor(secs / 60) || 0;
   const seconds = Math.floor(secs % 60) || 0;
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+}
+
+function normalizeMixFormat(rawFormat) {
+  const fmt = String(rawFormat || '').trim().toLowerCase();
+  return fmt === 'mp3' ? 'mp3' : 'flac';
+}
+
+function resolveMixMimeType(format, providedMimeType = '') {
+  if (providedMimeType && String(providedMimeType).trim()) {
+    return String(providedMimeType).trim().toLowerCase();
+  }
+  return format === 'mp3' ? 'audio/mpeg' : 'audio/flac';
+}
+
+function getPreferredMixFormat() {
+  try {
+    if (typeof Howler !== 'undefined' && typeof Howler.codecs === 'function' && Howler.codecs('flac')) {
+      return 'flac';
+    }
+  } catch (err) {
+    console.warn('Cannot detect FLAC codec support, fallback to mp3:', err);
+  }
+  return 'mp3';
+}
+
+function applyGeneratedMix(base64Data, version, audioFormat, mimeType) {
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let j = 0; j < binaryString.length; j++) {
+    bytes[j] = binaryString.charCodeAt(j);
+  }
+
+  const resolvedFormat = normalizeMixFormat(audioFormat || generatedMixFormat);
+  const resolvedMime = resolveMixMimeType(resolvedFormat, mimeType || generatedMixMimeType);
+
+  generatedMixBlob = new Blob([bytes], { type: resolvedMime });
+  generatedMixVersion = version || 'v1';
+  generatedMixFormat = resolvedFormat;
+  generatedMixMimeType = resolvedMime;
 }
 
 function mapProcessingPhase(message = '', status = 'progress') {
@@ -93,8 +134,8 @@ const previewIcon = document.getElementById('preview-icon');
 const heartbeatSelect = document.getElementById('heartbeat-select');
 const previewHeartbeatBtn = document.getElementById('preview-heartbeat-btn');
 const previewHeartbeatIcon = document.getElementById('preview-heartbeat-icon');
-const heartbeatModeUploadBtn = document.getElementById('heartbeat-mode-upload');
-const heartbeatModeLibraryBtn = document.getElementById('heartbeat-mode-library');
+const heartbeatModeUploadInput = document.getElementById('heartbeat-mode-upload');
+const heartbeatModeLibraryInput = document.getElementById('heartbeat-mode-library');
 const heartbeatUploadWrap = document.getElementById('heartbeat-upload-wrap');
 const heartbeatLibraryWrap = document.getElementById('heartbeat-library-wrap');
 const trackStatusText = document.getElementById('track-status-text');
@@ -206,27 +247,16 @@ if (heartbeatSelect) {
   });
 }
 
-const renderHeartbeatModeButtons = () => {
-  if (!heartbeatModeUploadBtn || !heartbeatModeLibraryBtn) return;
+const syncHeartbeatSourceControls = () => {
+  if (!heartbeatModeUploadInput || !heartbeatModeLibraryInput) return;
 
   const uploadActive = heartbeatSourceMode === 'upload';
-  heartbeatModeUploadBtn.className = uploadActive
-    ? 'toggle-pill toggle-pill--active'
-    : 'toggle-pill toggle-pill--inactive';
-  heartbeatModeUploadBtn.setAttribute('aria-pressed', String(uploadActive));
-
   const canUseLibrary = heartbeatNames.length > 0;
-  const libraryActive = heartbeatSourceMode === 'library';
-  heartbeatModeLibraryBtn.disabled = !canUseLibrary;
-  heartbeatModeLibraryBtn.className = libraryActive
-    ? 'toggle-pill toggle-pill--active'
-    : 'toggle-pill toggle-pill--inactive';
-  heartbeatModeLibraryBtn.setAttribute('aria-pressed', String(libraryActive));
-  if (!canUseLibrary) {
-    heartbeatModeLibraryBtn.classList.add('toggle-pill--disabled');
-  } else {
-    heartbeatModeLibraryBtn.classList.remove('toggle-pill--disabled');
-  }
+  const libraryActive = heartbeatSourceMode === 'library' && canUseLibrary;
+
+  heartbeatModeUploadInput.checked = uploadActive;
+  heartbeatModeLibraryInput.checked = libraryActive;
+  heartbeatModeLibraryInput.disabled = !canUseLibrary;
 };
 
 const setHeartbeatSourceMode = (mode) => {
@@ -243,11 +273,20 @@ const setHeartbeatSourceMode = (mode) => {
     heartbeatLibraryWrap.classList.toggle('hidden', heartbeatSourceMode !== 'library');
   }
 
-  renderHeartbeatModeButtons();
+  syncHeartbeatSourceControls();
 };
 
-heartbeatModeUploadBtn.addEventListener('click', () => setHeartbeatSourceMode('upload'));
-heartbeatModeLibraryBtn.addEventListener('click', () => setHeartbeatSourceMode('library'));
+if (heartbeatModeUploadInput) {
+  heartbeatModeUploadInput.addEventListener('change', () => {
+    if (heartbeatModeUploadInput.checked) setHeartbeatSourceMode('upload');
+  });
+}
+
+if (heartbeatModeLibraryInput) {
+  heartbeatModeLibraryInput.addEventListener('change', () => {
+    if (heartbeatModeLibraryInput.checked) setHeartbeatSourceMode('library');
+  });
+}
 
 const initTrackSelect = () => {
   trackSelect.innerHTML = '';
@@ -378,7 +417,7 @@ const fetchTrackLibrary = async () => {
 
   initTrackSelect();
   initHeartbeatSelect();
-  renderHeartbeatModeButtons();
+  syncHeartbeatSourceControls();
 };
 
 function updateProgress() {
@@ -547,9 +586,12 @@ mixBtn.addEventListener('click', async () => {
 
   // Reset unified result for a new mix. The old multi-version pipeline is kept only in processor.py for rollback.
   generatedMixBlob = null;
+  generatedMixFormat = getPreferredMixFormat();
+  generatedMixMimeType = resolveMixMimeType(generatedMixFormat);
 
   const formData = new FormData();
   formData.append('track_name', trackName);
+  formData.append('output_format', generatedMixFormat);
   const mixEndpoint = useLibraryHeartbeat ? '/mix-file' : '/mix-all';
 
   try {
@@ -631,19 +673,11 @@ mixBtn.addEventListener('click', async () => {
 
         try {
           const result = JSON.parse(line);
-          const { version, status, progress, data, message } = result;
+          const { version, status, progress, data, message, audio_format, mime_type } = result;
 
           if (status === 'done' && data) {
             doneCount += 1;
-            // Decode the unified audio result
-            const binaryString = atob(data);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let j = 0; j < binaryString.length; j++) {
-              bytes[j] = binaryString.charCodeAt(j);
-            }
-            const blob = new Blob([bytes], { type: 'audio/flac' });
-            generatedMixBlob = blob;
-            generatedMixVersion = version || 'v1';
+            applyGeneratedMix(data, version, audio_format, mime_type);
 
             // update the single result card
             const card = document.getElementById('mix-result-card');
@@ -720,7 +754,7 @@ mixBtn.addEventListener('click', async () => {
     if (buffer.trim()) {
       try {
         const result = JSON.parse(buffer.trim());
-        const { version, status, progress, data, message } = result;
+        const { version, status, progress, data, message, audio_format, mime_type } = result;
         if (progress) {
           const [current, total] = progress.split('/').map(Number);
           const perc = Math.round((current / total) * 100);
@@ -736,14 +770,7 @@ mixBtn.addEventListener('click', async () => {
         }
         if (status === 'done' && data) {
           doneCount += 1;
-          const binaryString = atob(data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let j = 0; j < binaryString.length; j++) {
-            bytes[j] = binaryString.charCodeAt(j);
-          }
-          const blob = new Blob([bytes], { type: 'audio/flac' });
-          generatedMixBlob = blob;
-          generatedMixVersion = version || 'v1';
+          applyGeneratedMix(data, version, audio_format, mime_type);
 
           const card = document.getElementById('mix-result-card');
           if (card) {
@@ -825,9 +852,10 @@ function playMix(cardElement) {
 
   // Create new sound
   const url = URL.createObjectURL(blob);
+  const playbackFormats = generatedMixFormat === 'mp3' ? ['mp3'] : ['flac', 'mp3'];
   currentSound = new Howl({
     src: [url],
-    format: ['flac'],
+    format: playbackFormats,
     volume: volumeSlider.value,
     onplay: () => {
       isPlaying = true;
@@ -981,7 +1009,7 @@ downloadBtn.addEventListener('click', async () => {
 
   // send blob and speed to server
   const formData = new FormData();
-  formData.append('file', generatedMixBlob, 'unified-v1.flac');
+  formData.append('file', generatedMixBlob, `unified-v1.${generatedMixFormat}`);
   formData.append('speeds', chosen); // single speed now
 
   try {
