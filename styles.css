@@ -1,24 +1,27 @@
 .bg-mesh-gradient {
     background-color: #fdf2f2;
-    background-image: 
-        radial-gradient(at 0% 0%, hsla(253,16%,7%,0) 0, hsla(253,16%,7%,0) 50%), 
-        radial-gradient(at 50% 0%, hsla(225,39%,30%,0) 0, hsla(225,39%,30%,0) 50%), 
-        radial-gradient(at 100% 0%, hsla(339,49%,30%,0) 0, hsla(339,49%,30%,0) 50%), 
-        radial-gradient(at 0% 50%, rgba(226, 169, 190, 0.2) 0, transparent 50%), 
-        radial-gradient(at 50% 50%, rgba(243, 166, 131, 0.1) 0, transparent 50%), 
+    background-image:
+        radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 0) 0, hsla(253, 16%, 7%, 0) 50%),
+        radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 0) 0, hsla(225, 39%, 30%, 0) 50%),
+        radial-gradient(at 100% 0%, hsla(339, 49%, 30%, 0) 0, hsla(339, 49%, 30%, 0) 50%),
+        radial-gradient(at 0% 50%, rgba(226, 169, 190, 0.2) 0, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(243, 166, 131, 0.1) 0, transparent 50%),
         radial-gradient(at 100% 50%, rgba(120, 150, 130, 0.1) 0, transparent 50%);
 }
+
 .glass-card {
     background: rgba(255, 255, 255, 0.5);
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.7);
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .glass-card:hover {
     transform: translateY(-8px);
     background: rgba(255, 255, 255, 0.7);
     box-shadow: 0 25px 50px -12px rgba(226, 169, 190, 0.25);
 }
+
 .waveform-bar {
     height: 100%;
     width: 3px;
@@ -29,7 +32,8 @@
 
 /* ensure grid clears the fixed player */
 #mix-grid {
-    padding-bottom: 220px; /* ensure cards not hidden by player */
+    padding-bottom: 220px;
+    /* ensure cards not hidden by player */
 }
 
 /* .mix-card {
@@ -38,10 +42,19 @@
 .pulse-wave {
     animation: pulse-wave-height 1.5s ease-in-out infinite;
 }
+
 @keyframes pulse-wave-height {
-    0%, 100% { height: 20%; }
-    50% { height: 80%; }
+
+    0%,
+    100% {
+        height: 20%;
+    }
+
+    50% {
+        height: 80%;
+    }
 }
+
 .loading-shimmer {
     background: linear-gradient(90deg, #f0f0f0 25%, #f8f8f8 50%, #f0f0f0 75%);
     background-size: 200% 100%;
@@ -49,8 +62,13 @@
 }
 
 @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* New processing animations */
@@ -66,12 +84,10 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0.4) 50%,
-        rgba(255, 255, 255, 0) 100%
-    );
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.4) 50%,
+            rgba(255, 255, 255, 0) 100%);
     background-size: 200% 100%;
     animation: shimmer 2s infinite linear;
     pointer-events: none;
@@ -82,11 +98,25 @@
 }
 
 @keyframes heart-beat {
-    0% { transform: scale(1); }
-    15% { transform: scale(1.25); }
-    30% { transform: scale(1); }
-    45% { transform: scale(1.15); }
-    60% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    15% {
+        transform: scale(1.25);
+    }
+
+    30% {
+        transform: scale(1);
+    }
+
+    45% {
+        transform: scale(1.15);
+    }
+
+    60% {
+        transform: scale(1);
+    }
 }
 
 .processing-status {
@@ -111,8 +141,15 @@
 }
 
 @keyframes fade-in {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 #progress-fill {
@@ -127,7 +164,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
     animation: shimmer 1s infinite;
 }
 
@@ -146,11 +183,28 @@
 }
 
 @keyframes heart-beat-heavy {
-    0% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 0 rgba(226,169,190,0)); }
-    15% { transform: scale(1.3) rotate(-5deg); filter: drop-shadow(0 0 20px rgba(226,169,190,0.6)); }
-    30% { transform: scale(1) rotate(0deg); }
-    45% { transform: scale(1.15) rotate(3deg); filter: drop-shadow(0 0 10px rgba(226,169,190,0.4)); }
-    60% { transform: scale(1) rotate(0deg); }
+    0% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 0 rgba(226, 169, 190, 0));
+    }
+
+    15% {
+        transform: scale(1.3) rotate(-5deg);
+        filter: drop-shadow(0 0 20px rgba(226, 169, 190, 0.6));
+    }
+
+    30% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    45% {
+        transform: scale(1.15) rotate(3deg);
+        filter: drop-shadow(0 0 10px rgba(226, 169, 190, 0.4));
+    }
+
+    60% {
+        transform: scale(1) rotate(0deg);
+    }
 }
 
 .particle {
@@ -160,20 +214,35 @@
 }
 
 @keyframes float {
-    0%, 100% { transform: translate(0, 0); }
-    33% { transform: translate(10px, -15px); }
-    66% { transform: translate(-5px, 10px); }
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    33% {
+        transform: translate(10px, -15px);
+    }
+
+    66% {
+        transform: translate(-5px, 10px);
+    }
 }
 
 .animate-shimmer-fast {
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite linear;
 }
 
 @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Button-Centered Progress & Animations */
@@ -182,12 +251,20 @@
     position: relative;
     box-shadow: 0 0 20px rgba(226, 169, 190, 0.4), 0 0 40px rgba(243, 166, 131, 0.2);
     animation: aura-pulse 3s infinite ease-in-out;
-    pointer-events: none; /* Extra safety */
+    pointer-events: none;
+    /* Extra safety */
 }
 
 @keyframes aura-pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(226, 169, 190, 0.4), 0 0 40px rgba(243, 166, 131, 0.1); }
-    50% { box-shadow: 0 0 40px rgba(226, 169, 190, 0.6), 0 0 60px rgba(243, 166, 131, 0.3); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(226, 169, 190, 0.4), 0 0 40px rgba(243, 166, 131, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 40px rgba(226, 169, 190, 0.6), 0 0 60px rgba(243, 166, 131, 0.3);
+    }
 }
 
 .toggle-pill {
@@ -229,6 +306,106 @@
     cursor: not-allowed;
 }
 
+.radio-toggle-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.5rem;
+}
+
+.radio-toggle-option {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.radio-toggle-input {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-toggle-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.75rem;
+    padding: 0.25rem 0.125rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+}
+
+.radio-toggle-indicator {
+    position: relative;
+    width: 1.35rem;
+    height: 1.35rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    border: 2px solid rgba(148, 163, 184, 0.45);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.05);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.radio-toggle-indicator::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #e2a9be, #f3a683);
+    transform: translate(-50%, -50%) scale(0);
+    transition: transform 0.2s ease;
+}
+
+.radio-toggle-input:checked+.radio-toggle-control {
+    color: #334155;
+}
+
+.radio-toggle-input:checked+.radio-toggle-control .radio-toggle-indicator {
+    border-color: #e2a9be;
+    box-shadow: 0 0 0 4px rgba(226, 169, 190, 0.16);
+    transform: scale(1.02);
+}
+
+.radio-toggle-input:checked+.radio-toggle-control .radio-toggle-indicator::after {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.radio-toggle-input:focus-visible+.radio-toggle-control .radio-toggle-indicator {
+    outline: 3px solid rgba(226, 169, 190, 0.22);
+    outline-offset: 3px;
+}
+
+.radio-toggle-option:hover .radio-toggle-control {
+    color: #334155;
+    transform: translateY(-1px);
+}
+
+.radio-toggle-input:disabled+.radio-toggle-control {
+    cursor: not-allowed;
+    opacity: 0.42;
+    transform: none;
+}
+
+.radio-toggle-input:disabled {
+    cursor: not-allowed;
+}
+
+.radio-toggle-input:disabled+.radio-toggle-control .radio-toggle-indicator {
+    border-color: rgba(148, 163, 184, 0.25);
+    box-shadow: none;
+}
+
 .select-arrow {
     appearance: none;
     -webkit-appearance: none;
@@ -251,21 +428,24 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0) 30%,
-        rgba(255, 255, 255, 0.4) 50%,
-        rgba(255, 255, 255, 0) 70%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0) 30%,
+            rgba(255, 255, 255, 0.4) 50%,
+            rgba(255, 255, 255, 0) 70%,
+            transparent 100%);
     animation: scan-move 2.5s infinite linear;
     z-index: 5;
 }
 
 @keyframes scan-move {
-    0% { left: -100%; }
-    100% { left: 100%; }
+    0% {
+        left: -100%;
+    }
+
+    100% {
+        left: 100%;
+    }
 }
 
 .liquid-fill {
@@ -298,6 +478,13 @@
 }
 
 @keyframes particle-fly {
-    0% { transform: translate(0, 0) scale(1); opacity: 1; }
-    100% { transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0); opacity: 0; }
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--tw-translate-x), var(--tw-translate-y)) scale(0);
+        opacity: 0;
+    }
 }

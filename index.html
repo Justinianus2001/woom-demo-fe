@@ -75,17 +75,26 @@
             <p id="track-status-text" class="mt-3 text-sm text-slate-500 hidden"></p>
           </div>
           <div class="relative group">
-            <label class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">2.
-              Heartbeat Source</label>
-            <div class="flex gap-2">
-              <button id="heartbeat-mode-upload" type="button"
-                class="toggle-pill toggle-pill--active">
-                Upload File
-              </button>
-              <button id="heartbeat-mode-library" type="button"
-                class="toggle-pill toggle-pill--inactive">
-                Resource File
-              </button>
+            <span id="heartbeat-source-label"
+              class="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-widest">2.
+              Heartbeat Source</span>
+            <div class="radio-toggle-group" role="radiogroup" aria-labelledby="heartbeat-source-label">
+              <label class="radio-toggle-option">
+                <input id="heartbeat-mode-upload" type="radio" name="heartbeat-source" value="upload" checked
+                  class="radio-toggle-input" />
+                <span class="radio-toggle-control">
+                  <span class="radio-toggle-indicator" aria-hidden="true"></span>
+                  <span class="radio-toggle-text">Upload File</span>
+                </span>
+              </label>
+              <label class="radio-toggle-option">
+                <input id="heartbeat-mode-library" type="radio" name="heartbeat-source" value="library"
+                  class="radio-toggle-input" />
+                <span class="radio-toggle-control">
+                  <span class="radio-toggle-indicator" aria-hidden="true"></span>
+                  <span class="radio-toggle-text">Resource File</span>
+                </span>
+              </label>
             </div>
           </div>
           <div id="heartbeat-upload-wrap" class="relative group">
