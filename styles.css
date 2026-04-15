@@ -407,6 +407,11 @@
 }
 
 .select-arrow {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     appearance: none;
     -webkit-appearance: none;
     -moz-appearance: none;

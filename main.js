@@ -34,6 +34,37 @@ function formatTime(secs) {
   return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 }
 
+const SELECT_LABEL_MAX_LENGTH = 40;
+
+function isGeneratedMixTrackName(trackName) {
+  const normalized = String(trackName || '').trim().toLowerCase();
+  if (!normalized) return false;
+
+  return (
+    /^mixed[-_][a-f0-9]{8,}(?:[-_][a-f0-9]{8,})*(?:\.[a-z0-9]+)?$/.test(normalized) ||
+    /^v\d+_mixed(?:\.[a-z0-9]+)?$/.test(normalized)
+  );
+}
+
+function getCompactSelectLabel(label, maxLength = SELECT_LABEL_MAX_LENGTH) {
+  const text = String(label || '').trim();
+  if (text.length <= maxLength) return text;
+
+  const extensionMatch = text.match(/(\.[^.\s]{1,8})$/);
+  const extension = extensionMatch ? extensionMatch[1] : '';
+  const stem = extension ? text.slice(0, -extension.length) : text;
+  const availableLength = Math.max(12, maxLength - extension.length - 3);
+
+  return `${stem.slice(0, availableLength)}...${extension}`;
+}
+
+function syncSelectTitle(selectElement, displayNames) {
+  if (!selectElement) return;
+
+  const selectedValue = selectElement.value;
+  selectElement.title = (displayNames && displayNames[selectedValue]) || selectedValue || '';
+}
+
 function normalizeMixFormat(rawFormat) {
   const fmt = String(rawFormat || '').trim().toLowerCase();
   return fmt === 'flac' ? 'flac' : 'mp3';
@@ -245,11 +276,13 @@ if (previewHeartbeatBtn) {
 }
 
 trackSelect.addEventListener('change', () => {
+  syncSelectTitle(trackSelect, trackDisplayNames);
   if (previewKind === 'track') stopPreview();
 });
 
 if (heartbeatSelect) {
   heartbeatSelect.addEventListener('change', () => {
+    syncSelectTitle(heartbeatSelect, heartbeatDisplayNames);
     if (previewKind === 'heartbeat') stopPreview();
   });
 }
@@ -328,10 +361,13 @@ const initTrackSelect = () => {
   trackNames.forEach(track => {
     const opt = document.createElement('option');
     opt.value = track;
-    opt.textContent = trackDisplayNames[track] || track;
+    const displayName = trackDisplayNames[track] || track;
+    opt.textContent = getCompactSelectLabel(displayName);
+    opt.title = displayName;
     trackSelect.appendChild(opt);
   });
   trackSelect.value = trackNames[0];
+  syncSelectTitle(trackSelect, trackDisplayNames);
 };
 
 const initHeartbeatSelect = () => {
@@ -360,12 +396,15 @@ const initHeartbeatSelect = () => {
   heartbeatNames.forEach(track => {
     const opt = document.createElement('option');
     opt.value = track;
-    opt.textContent = heartbeatDisplayNames[track] || track;
+    const displayName = heartbeatDisplayNames[track] || track;
+    opt.textContent = getCompactSelectLabel(displayName);
+    opt.title = displayName;
     heartbeatSelect.appendChild(opt);
   });
 
   heartbeatSelect.disabled = false;
   heartbeatSelect.value = heartbeatNames[0];
+  syncSelectTitle(heartbeatSelect, heartbeatDisplayNames);
   if (previewHeartbeatBtn) previewHeartbeatBtn.disabled = false;
 };
 
@@ -385,6 +424,9 @@ const normalizeTrackLibrary = (tracks) => {
     if (!item) return;
 
     if (typeof item === 'string') {
+      if (isGeneratedMixTrackName(item)) {
+        return;
+      }
       trackbeats.push(item);
       trackbeatLabels[item] = item;
       return;
@@ -393,6 +435,10 @@ const normalizeTrackLibrary = (tracks) => {
     const trackName = String(item.track_name || item.name || '').trim();
     if (!trackName) return;
     const displayName = String(item.display_name || item.original_name || trackName).trim() || trackName;
+
+    if (isGeneratedMixTrackName(trackName) || isGeneratedMixTrackName(displayName)) {
+      return;
+    }
 
     const fileType = String(item.file_type || '').toLowerCase();
     const normalizedType = fileType.replace(/[\s_-]/g, '');
