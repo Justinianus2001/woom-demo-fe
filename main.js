@@ -15,6 +15,7 @@ let heartbeatNames = [];
 let trackDisplayNames = {};
 let heartbeatDisplayNames = {};
 let trackLibraryStatusMessage = '';
+let cachedPickedUpload = null;
 
 // Tempo presets for both preview and server request
 const speedMap = {
@@ -91,6 +92,50 @@ function getPreferredMixFormat() {
     console.warn('Cannot detect FLAC codec support, fallback to mp3:', err);
   }
   return 'mp3';
+}
+
+function getFileCacheKey(file) {
+  if (!file) return '';
+  const name = String(file.name || '').trim();
+  const size = Number(file.size || 0);
+  const modified = Number(file.lastModified || 0);
+  return `${name}::${size}::${modified}`;
+}
+
+async function cachePickedUploadFile(file) {
+  if (!file) {
+    cachedPickedUpload = null;
+    return null;
+  }
+
+  const cacheKey = getFileCacheKey(file);
+  if (
+    cachedPickedUpload
+    && cachedPickedUpload.cacheKey === cacheKey
+    && cachedPickedUpload.bytes
+    && cachedPickedUpload.bytes.byteLength > 0
+  ) {
+    return cachedPickedUpload;
+  }
+
+  const fileBuffer = await file.arrayBuffer();
+  if (!fileBuffer || fileBuffer.byteLength <= 0) {
+    throw new Error('Selected heartbeat file cannot be read or is empty.');
+  }
+
+  cachedPickedUpload = {
+    cacheKey,
+    name: file.name || 'heartbeat.wav',
+    type: file.type || 'audio/wav',
+    bytes: new Uint8Array(fileBuffer),
+    size: fileBuffer.byteLength,
+  };
+
+  return cachedPickedUpload;
+}
+
+function clearPickedUploadCache() {
+  cachedPickedUpload = null;
 }
 
 function applyGeneratedMix(base64Data, version, audioFormat, mimeType) {
@@ -587,8 +632,24 @@ for (let i = 0; i < 40; i++) {
 }
 
 // File Selection Handlers
-pickedInput.addEventListener('change', (e) => {
-  if (e.target.files[0]) pickedName.innerText = e.target.files[0].name;
+pickedInput.addEventListener('change', async (e) => {
+  const selectedFile = e.target.files && e.target.files[0] ? e.target.files[0] : null;
+
+  if (!selectedFile) {
+    pickedName.innerText = 'Select heartbeat recording...';
+    clearPickedUploadCache();
+    return;
+  }
+
+  pickedName.innerText = selectedFile.name;
+  clearPickedUploadCache();
+
+  try {
+    await cachePickedUploadFile(selectedFile);
+    console.info('Heartbeat upload cached in memory for stable retries.');
+  } catch (cacheErr) {
+    console.warn('Unable to cache selected heartbeat file:', cacheErr);
+  }
 });
 
 // Mix Generation Logic with Streaming
@@ -685,24 +746,24 @@ mixBtn.addEventListener('click', async () => {
       statusText.innerText = '⏳ Loading heartbeat from Resource File...';
       formData.append('heartbeat_name', heartbeatName);
     } else {
-      // Read the file into memory to circumvent Android Chrome bugs
-      // where FormData fails to stream files from content:// URIs.
-      statusText.innerText = '⏳ Loading file into memory...';
+      // Always build upload payload from a cached in-memory copy.
+      // This avoids zero-byte uploads on browsers that expose one-time file streams.
+      statusText.innerText = '⏳ Preparing uploaded heartbeat...';
       try {
-        const fileBuffer = await pickedFile.arrayBuffer();
-        if (fileBuffer.byteLength > 0) {
-          const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
-          formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
-        } else if (pickedFile.size > 0) {
-          console.warn('arrayBuffer() returned 0 bytes, falling back to original File object upload.');
-          formData.append('picked', pickedFile, pickedFile.name || 'heartbeat.wav');
-        } else {
+        const cachedUpload = await cachePickedUploadFile(pickedFile);
+        if (!cachedUpload || cachedUpload.size <= 0) {
           throw new Error('Selected heartbeat file is empty.');
         }
+
+        const fileBlob = new Blob(
+          [cachedUpload.bytes],
+          { type: cachedUpload.type || pickedFile.type || 'audio/wav' }
+        );
+        formData.append('picked', fileBlob, cachedUpload.name || pickedFile.name || 'heartbeat.wav');
       } catch (bufferErr) {
-        console.error('Failed to read file into memory:', bufferErr);
-        // Fallback: try appending normally if buffer fails (though it risks the Android stream bug again)
-        formData.append('picked', pickedFile);
+        clearPickedUploadCache();
+        console.error('Failed to prepare upload heartbeat file:', bufferErr);
+        throw new Error('Cannot read uploaded heartbeat file. Please re-select the file and try again.');
       }
     }
 
