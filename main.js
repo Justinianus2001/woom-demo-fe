@@ -614,6 +614,11 @@ mixBtn.addEventListener('click', async () => {
       return;
     }
 
+    if (pickedFile.size <= 0) {
+      alert("The selected heartbeat file is empty. Please choose another file.");
+      return;
+    }
+
     // Prevent uploading excessively large files that might timeout or get rejected by the server
     if (pickedFile.size > 15 * 1024 * 1024) {
       alert("The chosen heartbeat file is too large (over 15MB). Please choose a shorter recording or use a more compressed format (e.g. m4a, mp3) to avoid connection errors.");
@@ -685,8 +690,15 @@ mixBtn.addEventListener('click', async () => {
       statusText.innerText = '⏳ Loading file into memory...';
       try {
         const fileBuffer = await pickedFile.arrayBuffer();
-        const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
-        formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
+        if (fileBuffer.byteLength > 0) {
+          const fileBlob = new Blob([fileBuffer], { type: pickedFile.type || 'audio/wav' });
+          formData.append('picked', fileBlob, pickedFile.name || 'heartbeat.wav');
+        } else if (pickedFile.size > 0) {
+          console.warn('arrayBuffer() returned 0 bytes, falling back to original File object upload.');
+          formData.append('picked', pickedFile, pickedFile.name || 'heartbeat.wav');
+        } else {
+          throw new Error('Selected heartbeat file is empty.');
+        }
       } catch (bufferErr) {
         console.error('Failed to read file into memory:', bufferErr);
         // Fallback: try appending normally if buffer fails (though it risks the Android stream bug again)
