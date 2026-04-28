@@ -140,6 +140,47 @@
     animation: fade-in 0.5s ease-out;
 }
 
+/* Track Loading Styles */
+#track-loading-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+#track-status-container.visible {
+    display: block;
+    animation: slide-down 0.3s ease-out;
+}
+
+@keyframes slide-down {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulse animation for timer */
+.timer-pulse {
+    animation: timer-pulse 1s ease-in-out;
+}
+
+@keyframes timer-pulse {
+
+    0%,
+    100% {
+        color: #64748b;
+    }
+
+    50% {
+        color: #e2a9be;
+    }
+}
+
 @keyframes fade-in {
     from {
         opacity: 0;

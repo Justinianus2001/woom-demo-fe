@@ -485,6 +485,12 @@ const normalizeTrackLibrary = (tracks) => {
       return;
     }
 
+    const normalizedTrackName = trackName.toLowerCase();
+    const normalizedDisplayName = displayName.toLowerCase();
+    if (normalizedDisplayName === 'hb.wav' || (normalizedTrackName.endsWith('_hb.wav') && normalizedDisplayName === 'hb.wav')) {
+      return;
+    }
+
     const fileType = String(item.file_type || '').toLowerCase();
     const normalizedType = fileType.replace(/[\s_-]/g, '');
     const normalizedLabel = displayName.toLowerCase();
@@ -515,7 +521,72 @@ const normalizeTrackLibrary = (tracks) => {
   };
 };
 
+let trackLoadStartTime = 0;
+let trackLoadTimerInterval = null;
+
+const showTrackLoadingState = () => {
+  const trackOverlay = document.getElementById('track-loading-overlay');
+  const heartbeatOverlay = document.getElementById('heartbeat-loading-overlay');
+  const container = document.getElementById('track-status-container');
+  const statusText = document.getElementById('track-status-text');
+  const timer = document.getElementById('track-load-timer');
+
+  if (trackOverlay) {
+    trackOverlay.classList.add('active');
+  }
+  if (heartbeatOverlay) {
+    heartbeatOverlay.classList.add('active');
+  }
+  if (container) {
+    container.classList.add('visible');
+  }
+  if (statusText) {
+    statusText.textContent = 'Loading tracks from R2 Storage...';
+  }
+
+  trackLoadStartTime = Date.now();
+  if (trackLoadTimerInterval) clearInterval(trackLoadTimerInterval);
+
+  trackLoadTimerInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - trackLoadStartTime) / 1000);
+    if (timer) {
+      timer.textContent = `${elapsed}s`;
+      // Pulse effect every second
+      timer.classList.remove('timer-pulse');
+      void timer.offsetWidth; // Trigger reflow
+      timer.classList.add('timer-pulse');
+    }
+  }, 100);
+};
+
+const hideTrackLoadingState = () => {
+  const trackOverlay = document.getElementById('track-loading-overlay');
+  const heartbeatOverlay = document.getElementById('heartbeat-loading-overlay');
+  const container = document.getElementById('track-status-container');
+  const timer = document.getElementById('track-load-timer');
+
+  if (trackOverlay) {
+    trackOverlay.classList.remove('active');
+  }
+  if (heartbeatOverlay) {
+    heartbeatOverlay.classList.remove('active');
+  }
+  if (container) {
+    container.classList.remove('visible');
+  }
+  if (timer) {
+    timer.classList.remove('timer-pulse');
+  }
+
+  if (trackLoadTimerInterval) {
+    clearInterval(trackLoadTimerInterval);
+    trackLoadTimerInterval = null;
+  }
+};
+
 const fetchTrackLibrary = async () => {
+  showTrackLoadingState();
+
   try {
     const response = await fetch(`${API_BASE}/tracks`, { method: 'GET' });
     if (!response.ok) {
@@ -537,6 +608,8 @@ const fetchTrackLibrary = async () => {
     heartbeatNames = [];
     trackDisplayNames = {};
     heartbeatDisplayNames = {};
+  } finally {
+    hideTrackLoadingState();
   }
 
   initTrackSelect();
