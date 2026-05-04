@@ -14,6 +14,8 @@ let trackNames = [];
 let heartbeatNames = [];
 let trackDisplayNames = {};
 let heartbeatDisplayNames = {};
+let trackbeatUrls = {};    // Store R2 direct URLs for preview
+let heartbeatUrls = {};     // Store R2 direct URLs for preview
 let trackLibraryStatusMessage = '';
 let cachedPickedUpload = null;
 
@@ -270,8 +272,20 @@ const playPreview = (fileName, kind) => {
   icon.classList.add('animate-spin');
   lucide.createIcons();
 
+  // Use R2 direct URL if available, otherwise fallback to backend proxy
+  let audioUrl;
+  if (kind === 'heartbeat' && heartbeatUrls && heartbeatUrls[fileName]) {
+    audioUrl = heartbeatUrls[fileName];
+  } else if (kind === 'track' && trackbeatUrls && trackbeatUrls[fileName]) {
+    audioUrl = trackbeatUrls[fileName];
+  } else {
+    audioUrl = buildTrackPath(fileName);
+  }
+
+  console.log(`Preview ${kind}: ${audioUrl}`);
+
   previewSound = new Howl({
-    src: [buildTrackPath(fileName)],
+    src: [audioUrl],
     html5: true,
     autoplay: true,
     onplay: () => {
@@ -287,12 +301,31 @@ const playPreview = (fileName, kind) => {
       }, 20000);
     },
     onend: stopPreview,
-    onloaderror: () => {
-      alert('Error loading track preview');
-      stopPreview();
+    onloaderror: (soundId, errorCode) => {
+      console.error(`Preview load error (code ${errorCode}) for ${audioUrl}`);
+      // Safari fix: try again with user interaction context
+      if (errorCode === 2 || errorCode === 3) {
+        console.warn('Safari compatibility: retrying with muted autoplay...');
+        previewSound.mute(true);
+        previewSound.play();
+        setTimeout(() => {
+          if (previewSound && previewSound.playing()) {
+            previewSound.mute(false);
+          }
+        }, 500);
+      } else {
+        alert('Error loading track preview');
+        stopPreview();
+      }
     },
-    onplayerror: () => {
-      alert('Error playing track preview');
+    onplayerror: (soundId, errorCode) => {
+      console.error(`Preview play error (code ${errorCode}) for ${audioUrl}`);
+      // Safari may block autoplay - show user-friendly message
+      if (errorCode === 1) {
+        alert('Please interact with the page first (Safari autoplay policy)');
+      } else {
+        alert('Error playing track preview');
+      }
       stopPreview();
     }
   });
@@ -458,11 +491,13 @@ const normalizeTrackLibrary = (tracks) => {
   const heartbeats = [];
   const trackbeatLabels = {};
   const heartbeatLabels = {};
+  const trackbeatUrlsLocal = {};
+  const heartbeatUrlsLocal = {};
   const seenTrackLabels = new Set();
   const seenHeartbeatLabels = new Set();
 
   if (!Array.isArray(tracks)) {
-    return { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels };
+    return { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels, trackbeatUrls: trackbeatUrlsLocal, heartbeatUrls: heartbeatUrlsLocal };
   }
 
   tracks.forEach((item) => {
@@ -501,6 +536,10 @@ const normalizeTrackLibrary = (tracks) => {
       seenHeartbeatLabels.add(normalizedLabel);
       heartbeats.push(trackName);
       heartbeatLabels[trackName] = displayName;
+      // Store R2 direct URL for preview
+      if (item.file_url) {
+        heartbeatUrlsLocal[trackName] = item.file_url;
+      }
       return;
     }
 
@@ -511,6 +550,10 @@ const normalizeTrackLibrary = (tracks) => {
 
     trackbeats.push(trackName);
     trackbeatLabels[trackName] = displayName;
+    // Store R2 direct URL for preview
+    if (item.file_url) {
+      trackbeatUrlsLocal[trackName] = item.file_url;
+    }
   });
 
   return {
@@ -518,6 +561,8 @@ const normalizeTrackLibrary = (tracks) => {
     heartbeats: [...new Set(heartbeats)],
     trackbeatLabels,
     heartbeatLabels,
+    trackbeatUrls: trackbeatUrlsLocal,
+    heartbeatUrls: heartbeatUrlsLocal,
   };
 };
 
@@ -588,19 +633,22 @@ const fetchTrackLibrary = async () => {
   showTrackLoadingState();
 
   try {
-    const response = await fetch(`${API_BASE}/tracks`, { method: 'GET' });
+    // Use lightweight metadata endpoint for fast initial load (≤2s)
+    const response = await fetch(`${API_BASE}/tracks/metadata`, { method: 'GET' });
     if (!response.ok) {
       throw new Error(`Cannot load track library (status ${response.status})`);
     }
 
     const payload = await response.json();
-    const { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels } = normalizeTrackLibrary(payload.tracks);
+    const { trackbeats, heartbeats, trackbeatLabels, heartbeatLabels, trackbeatUrls: tbUrls, heartbeatUrls: hbUrls } = normalizeTrackLibrary(payload.tracks);
     trackNames = trackbeats;
     heartbeatNames = heartbeats;
     trackDisplayNames = trackbeatLabels;
     heartbeatDisplayNames = heartbeatLabels;
+    trackbeatUrls = tbUrls || {};
+    heartbeatUrls = hbUrls || {};
 
-    console.log(`Loaded ${trackNames.length} tracks and ${heartbeatNames.length} heartbeats from API.`);
+    console.log(`Loaded metadata for ${trackNames.length} tracks and ${heartbeatNames.length} heartbeats (lazyload ready).`);
   } catch (error) {
     console.warn('Unable to load track library from API:', error);
     trackLibraryStatusMessage = error.message || 'Unknown error';
