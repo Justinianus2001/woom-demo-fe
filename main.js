@@ -234,6 +234,20 @@ if (skipNextBtn) skipNextBtn.classList.add('hidden');
 let previewSound = null;
 let previewKind = null;
 
+  const setPreviewStatus = (kind, status, detail = '') => {
+    const statusText = kind === 'heartbeat' ? heartbeatLibraryStatusText : trackStatusText;
+    if (!statusText) return;
+    
+    const messages = {
+      'loading': 'Loading preview...',
+      'playing': `Playing: ${detail}`,
+      'stopped': 'Stopped',
+      'error': `Error: ${detail}`,
+    };
+    statusText.textContent = messages[status] || status;
+    statusText.classList.remove('hidden');
+  };
+
 const setPreviewButtonIdle = (kind) => {
   const icon = kind === 'heartbeat' ? previewHeartbeatIcon : previewIcon;
   const button = kind === 'heartbeat' ? previewHeartbeatBtn : previewTrackBtn;
@@ -252,11 +266,11 @@ const stopPreview = () => {
   }
   if (previewKind) {
     setPreviewButtonIdle(previewKind);
+    setPreviewStatus(previewKind, 'stopped');
   }
   previewKind = null;
   lucide.createIcons();
 };
-
 const playPreview = (fileName, kind) => {
   if (!fileName) return;
   const icon = kind === 'heartbeat' ? previewHeartbeatIcon : previewIcon;
@@ -270,7 +284,11 @@ const playPreview = (fileName, kind) => {
   previewKind = kind;
   icon.setAttribute('data-lucide', 'loader-2');
   icon.classList.add('animate-spin');
+  button.classList.add('text-green-500', 'bg-green-50');
   lucide.createIcons();
+
+  // Update status to loading
+  setPreviewStatus(kind, 'loading');
 
   // Use R2 direct URL if available, otherwise fallback to backend proxy
   let audioUrl;
@@ -294,15 +312,23 @@ const playPreview = (fileName, kind) => {
       button.classList.add('text-green-500', 'bg-green-50');
       lucide.createIcons();
 
+      // Update status to playing
+      const displayName = kind === 'heartbeat' ? 
+        (heartbeatDisplayNames && heartbeatDisplayNames[fileName]) || fileName :
+        (trackDisplayNames && trackDisplayNames[fileName]) || fileName;
+      setPreviewStatus(kind, 'playing', displayName);
+
       setTimeout(() => {
         if (previewKind === kind && previewSound) {
           stopPreview();
         }
       }, 20000);
     },
-    onend: stopPreview,
+    onend: () => {
+      stopPreview();
+    },
     onloaderror: (soundId, errorCode) => {
-      console.error(`Preview load error (code ${errorCode}) for ${audioUrl}`);
+      console.error();
       // Safari fix: try again with user interaction context
       if (errorCode === 2 || errorCode === 3) {
         console.warn('Safari compatibility: retrying with muted autoplay...');
@@ -315,55 +341,97 @@ const playPreview = (fileName, kind) => {
         }, 500);
       } else {
         alert('Error loading track preview');
+        setPreviewStatus(kind, 'error', 'Load failed');
         stopPreview();
       }
     },
     onplayerror: (soundId, errorCode) => {
-      console.error(`Preview play error (code ${errorCode}) for ${audioUrl}`);
+      console.error();
       // Safari may block autoplay - show user-friendly message
       if (errorCode === 1) {
         alert('Please interact with the page first (Safari autoplay policy)');
       } else {
         alert('Error playing track preview');
       }
+      setPreviewStatus(kind, 'error', 'Play failed');
       stopPreview();
     }
   });
 };
 
-previewTrackBtn.addEventListener('click', () => {
-  if (previewKind === 'track') {
-    stopPreview();
+const previewUploadedHeartbeat = () => {
+  if (!cachedPickedUpload || !cachedPickedUpload.bytes || cachedPickedUpload.bytes.byteLength === 0) {
+    alert('Vui lòng chọn file heartbeat trước khi preview.');
     return;
   }
 
-  const trackName = trackSelect.value;
-  playPreview(trackName, 'track');
-});
+  if (previewSound) {
+    stopPreview();
+  }
 
-if (previewHeartbeatBtn) {
-  previewHeartbeatBtn.addEventListener('click', () => {
-    if (previewKind === 'heartbeat') {
+  previewKind = 'heartbeat';
+  previewHeartbeatIcon.setAttribute('data-lucide', 'loader-2');
+  previewHeartbeatIcon.classList.add('animate-spin');
+  previewHeartbeatBtn.classList.add('text-green-500', 'bg-green-50');
+  lucide.createIcons();
+
+  setPreviewStatus('heartbeat', 'loading');
+
+  const blob = new Blob([cachedPickedUpload.bytes], { type: cachedPickedUpload.type || 'audio/wav' });
+  const audioUrl = URL.createObjectURL(blob);
+
+  console.log(`Preview uploaded heartbeat: ${cachedPickedUpload.name}`);
+
+  previewSound = new Howl({
+    src: [audioUrl],
+    html5: true,
+    autoplay: true,
+    onplay: () => {
+      previewHeartbeatIcon.setAttribute('data-lucide', 'pause-circle');
+      previewHeartbeatIcon.classList.remove('animate-spin');
+      previewHeartbeatBtn.classList.add('text-green-500', 'bg-green-50');
+      lucide.createIcons();
+
+      setPreviewStatus('heartbeat', 'playing', cachedPickedUpload.name);
+
+      setTimeout(() => {
+        if (previewKind === 'heartbeat' && previewSound) {
+          stopPreview();
+        }
+      }, 20000);
+    },
+    onend: () => {
       stopPreview();
-      return;
+    },
+    onloaderror: (soundId, errorCode) => {
+      console.error('Heartbeat preview load error:', errorCode);
+      if (errorCode === 2 || errorCode === 3) {
+        console.warn('Safari compatibility: retrying with muted autoplay...');
+        previewSound.mute(true);
+        previewSound.play();
+        setTimeout(() => {
+          if (previewSound && previewSound.playing()) {
+            previewSound.mute(false);
+          }
+        }, 500);
+      } else {
+        alert('Lỗi khi tải heartbeat preview');
+        setPreviewStatus('heartbeat', 'error', 'Load failed');
+        stopPreview();
+      }
+    },
+    onplayerror: (soundId, errorCode) => {
+      console.error('Heartbeat preview play error:', errorCode);
+      if (errorCode === 1) {
+        alert('Vui lòng tương tác với trang trước (Safari autoplay policy)');
+      } else {
+        alert('Lỗi khi phát heartbeat preview');
+      }
+      setPreviewStatus('heartbeat', 'error', 'Play failed');
+      stopPreview();
     }
-
-    const heartbeatName = heartbeatSelect ? heartbeatSelect.value : '';
-    playPreview(heartbeatName, 'heartbeat');
   });
-}
-
-trackSelect.addEventListener('change', () => {
-  syncSelectTitle(trackSelect, trackDisplayNames);
-  if (previewKind === 'track') stopPreview();
-});
-
-if (heartbeatSelect) {
-  heartbeatSelect.addEventListener('change', () => {
-    syncSelectTitle(heartbeatSelect, heartbeatDisplayNames);
-    if (previewKind === 'heartbeat') stopPreview();
-  });
-}
+};
 
 const syncHeartbeatSourceControls = () => {
   if (!heartbeatModeUploadInput || !heartbeatModeLibraryInput) return;
@@ -858,8 +926,7 @@ mixBtn.addEventListener('click', async () => {
   const formData = new FormData();
   formData.append('track_name', trackName);
   formData.append('output_format', generatedMixFormat);
-  const mixEndpoint = useLibraryHeartbeat ? '/mix-file' : '/mix-all';
-  const shouldRefreshLibraryAfterMix = !useLibraryHeartbeat;
+  const mixEndpoint = '/mix';
 
   try {
     statusText.classList.remove('hidden');
@@ -894,9 +961,6 @@ mixBtn.addEventListener('click', async () => {
     progressFill.style.width = '0%';
     progressText.innerText = '0%';
 
-    const startTime = Date.now();
-    let doneCount = 0;
-    let totalVersionCount = 1; // Unified pipeline only
     let lastMixError = '';
 
     const response = await fetch(`${API_BASE}${mixEndpoint}`, {
@@ -926,173 +990,101 @@ mixBtn.addEventListener('click', async () => {
       throw new Error(errorMsg);
     }
 
-    if (!response.body) {
-      throw new Error('Streaming response is not available in this browser.');
+    const result = await response.json();
+    const { task_id, status: initialStatus, message: initialMessage } = result;
+
+    if (!task_id) {
+      throw new Error('Invalid response from server: missing task_id');
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    statusText.innerText = `⏳ Task created: ${initialMessage || 'Processing...'} (Poll #0)`;
+    progressFill.style.width = '0%';
+    progressText.innerText = '0%';
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
+    // Start polling
+    const pollIntervalMs = 2000;
+    const maxPolls = 300;
+    let pollCount = 0;
 
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines[lines.length - 1];
+    while (pollCount < maxPolls) {
+      await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+      pollCount++;
 
-      for (let i = 0; i < lines.length - 1; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
+      const statusResp = await fetch(`${API_BASE}/mix/status/${task_id}`);
+      if (!statusResp.ok) {
+        throw new Error(`Failed to check status: ${statusResp.status}`);
+      }
 
-        try {
-          const result = JSON.parse(line);
-          const { version, status, progress, data, message, error, audio_format, mime_type } = result;
+      const statusData = await statusResp.json();
+      const { status, progress, message, error, download_url, output_format, mime_type } = statusData;
 
-          if (status === 'done' && data) {
-            doneCount += 1;
-            applyGeneratedMix(data, version, audio_format, mime_type);
+      if (progress) {
+        const [current, total] = progress.split('/').map(Number);
+        const perc = Math.round((current / total) * 100);
+        progressFill.style.width = `${perc}%`;
+        progressText.innerText = `${perc}%`;
 
-            // update the single result card
-            const card = document.getElementById('mix-result-card');
-            if (card) {
-              card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
+        const phase = mapProcessingPhase(message, status);
+        statusText.innerText = `⏳ ${phase.title} • ${perc}% (Poll #${pollCount})`;
 
-              const statusBadge = document.getElementById('mix-result-status');
-              const title = document.getElementById('mix-result-title');
-              const description = document.getElementById('mix-result-description');
-              if (statusBadge) {
-                statusBadge.innerText = "READY";
-                statusBadge.classList.remove('processing-status');
-                statusBadge.classList.replace('text-slate-400', 'text-green-500');
-                statusBadge.classList.replace('border-slate-200', 'border-green-200');
-              }
-              if (title) title.innerText = 'Unified Heartbeat Mix Ready';
-              if (description) {
-                description.innerText = 'A single stabilized mix is ready to play. The output keeps the heartbeat intro, BPM sync limit, and 432Hz tuning in one unified pipeline.';
-              }
-            }
-          }
+        const btnFill = document.getElementById('btn-liquid-fill');
+        const btnPercText = document.getElementById('btn-progress-perc');
+        if (btnFill) btnFill.style.height = `${perc}%`;
+        if (btnPercText) btnPercText.innerText = `${perc}%`;
 
-          if (progress) {
-            const [current, total] = progress.split('/').map(Number);
-            totalVersionCount = total; // Sync with server's reality
-            const perc = Math.round((current / total) * 100);
-            const phase = mapProcessingPhase(message, status);
-
-            // Inline Button Update (The source of truth)
-            const btnFill = document.getElementById('btn-liquid-fill');
-            const btnPercText = document.getElementById('btn-progress-perc');
-            if (btnFill) btnFill.style.height = `${perc}%`;
-            if (btnPercText) btnPercText.innerText = `${perc}%`;
-
-            progressFill.style.width = `${perc}%`;
-            progressText.innerText = `${perc}%`;
-
-            const statusBadge = document.getElementById('mix-result-status');
-            if (statusBadge && status !== 'done' && status !== 'failed') {
-              statusBadge.innerText = phase.badge;
-            }
-
-            // Recalculate ETA based on steps, not just finished versions
-            const elapsed = (Date.now() - startTime) / 1000;
-            if (current > 0) {
-              const avgPerStep = elapsed / current;
-              const remainingSteps = total - current;
-              const eta = Math.round(avgPerStep * remainingSteps);
-              statusText.innerText = `⏳ ${phase.title} • ${perc}% (ETA ${eta}s)`;
-            }
-          }
-
-          if (status === 'failed') {
-            const failureReason = String(error || message || '').trim();
-            if (failureReason) {
-              lastMixError = failureReason;
-              statusText.innerText = `❌ Mixing failed: ${failureReason}`;
-            }
-
-            const card = document.getElementById('mix-result-card');
-            if (card) {
-              const statusBadge = document.getElementById('mix-result-status');
-              if (statusBadge) {
-                statusBadge.innerText = "FAILED";
-                statusBadge.classList.remove('processing-status');
-                statusBadge.classList.replace('text-slate-400', 'text-red-500');
-                statusBadge.classList.replace('border-slate-200', 'border-red-200');
-              }
-              card.classList.add('opacity-40', 'pointer-events-none');
-              card.classList.remove('processing-card');
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing line:', line, e);
+        const statusBadge = document.getElementById('mix-result-status');
+        if (statusBadge && status !== 'COMPLETED' && status !== 'FAILED') {
+          statusBadge.innerText = phase.badge;
         }
+      }
+
+      if (status === 'COMPLETED') {
+        statusText.innerText = '⏳ Downloading result...';
+        const downloadResp = await fetch(`${API_BASE}/mix/download/${task_id}`);
+        if (!downloadResp.ok) {
+          throw new Error(`Failed to download result: ${downloadResp.status}`);
+        }
+
+        const blob = await downloadResp.blob();
+        const base64data = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.readAsDataURL(blob);
+          reader.onloadend = () => resolve(reader.result.split(',')[1]);
+          reader.onerror = reject;
+        });
+
+        applyGeneratedMix(base64data, 'v1', output_format || 'mp3', mime_type || 'audio/mpeg');
+
+        const card = document.getElementById('mix-result-card');
+        if (card) {
+          card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
+          const statusBadge = document.getElementById('mix-result-status');
+          const title = document.getElementById('mix-result-title');
+          const description = document.getElementById('mix-result-description');
+          if (statusBadge) {
+            statusBadge.innerText = "READY";
+            statusBadge.classList.remove('processing-status');
+            statusBadge.classList.replace('text-slate-400', 'text-green-500');
+            statusBadge.classList.replace('border-slate-200', 'border-green-200');
+          }
+          if (title) title.innerText = 'Unified Heartbeat Mix Ready';
+          if (description) {
+            description.innerText = 'A single stabilized mix is ready to play. The output keeps the heartbeat intro, BPM sync limit, and 432Hz tuning in one unified pipeline.';
+          }
+        }
+
+        lastMixError = '';
+        break;
+      }
+
+      if (status === 'FAILED') {
+        lastMixError = error || message || 'Mix failed';
+        throw new Error(lastMixError);
       }
     }
 
-    // Process any remaining text in the buffer after the stream ends
-    if (buffer.trim()) {
-      try {
-        const result = JSON.parse(buffer.trim());
-        const { version, status, progress, data, message, error, audio_format, mime_type } = result;
-        if (progress) {
-          const [current, total] = progress.split('/').map(Number);
-          const perc = Math.round((current / total) * 100);
-          const phase = mapProcessingPhase(message, status);
-          progressFill.style.width = `${perc}%`;
-          progressText.innerText = `${perc}%`;
-          statusText.innerText = `⏳ ${phase.title} • ${perc}%`;
-
-          const btnFill = document.getElementById('btn-liquid-fill');
-          const btnPercText = document.getElementById('btn-progress-perc');
-          if (btnFill) btnFill.style.height = `${perc}%`;
-          if (btnPercText) btnPercText.innerText = `${perc}%`;
-        }
-        if (status === 'done' && data) {
-          doneCount += 1;
-          applyGeneratedMix(data, version, audio_format, mime_type);
-
-          const card = document.getElementById('mix-result-card');
-          if (card) {
-            card.classList.remove('opacity-40', 'grayscale', 'pointer-events-none', 'processing-card');
-            const statusBadge = document.getElementById('mix-result-status');
-            const title = document.getElementById('mix-result-title');
-            const description = document.getElementById('mix-result-description');
-            if (statusBadge) {
-              statusBadge.innerText = "READY";
-              statusBadge.classList.remove('processing-status');
-              statusBadge.classList.replace('text-slate-400', 'text-green-500');
-              statusBadge.classList.replace('border-slate-200', 'border-green-200');
-            }
-            if (title) title.innerText = 'Unified Heartbeat Mix Ready';
-            if (description) {
-              description.innerText = 'A single stabilized mix is ready to play. The output keeps the heartbeat intro, BPM sync limit, and 432Hz tuning in one unified pipeline.';
-            }
-          }
-        } else if (status === 'failed') {
-          const failureReason = String(error || message || '').trim();
-          if (failureReason) {
-            lastMixError = failureReason;
-            statusText.innerText = `❌ Mixing failed: ${failureReason}`;
-          }
-
-          const card = document.getElementById('mix-result-card');
-          if (card) {
-            const statusBadge = document.getElementById('mix-result-status');
-            if (statusBadge) {
-              statusBadge.innerText = "FAILED";
-              statusBadge.classList.remove('processing-status');
-              statusBadge.classList.replace('text-slate-400', 'text-red-500');
-              statusBadge.classList.replace('border-slate-200', 'border-red-200');
-            }
-            card.classList.add('opacity-40', 'pointer-events-none');
-            card.classList.remove('processing-card');
-          }
-        }
-      } catch (e) {
-        console.error('Error parsing final buffer line:', buffer, e);
-      }
+    if (pollCount >= maxPolls) {
+      throw new Error('Mix timeout: task took too long to complete');
     }
 
     if (generatedMixBlob) {
@@ -1109,10 +1101,6 @@ mixBtn.addEventListener('click', async () => {
     statusText.innerText = `❌ ${error.message || "Network error or connection dropped."}`;
     progressBar.classList.add('hidden');
   } finally {
-    if (shouldRefreshLibraryAfterMix) {
-      fetchTrackLibrary();
-    }
-
     isMixing = false;
     mixBtn.classList.remove('mix-btn-active');
     mixBtn.disabled = false;
@@ -1337,5 +1325,45 @@ downloadBtn.addEventListener('click', async () => {
     downloadBtn.disabled = false;
   }
 });
+
+// Preview button event listeners (toggle: click again to stop)
+if (previewTrackBtn) {
+  previewTrackBtn.addEventListener('click', () => {
+    const trackName = trackSelect.value;
+    if (!trackName) return;
+
+    // Toggle: if already playing the same track, stop it
+    if (previewSound && previewKind === 'track' && trackSelect.value === trackName) {
+      stopPreview();
+      return;
+    }
+
+    playPreview(trackName, 'track');
+  });
+}
+
+if (previewHeartbeatBtn) {
+  previewHeartbeatBtn.addEventListener('click', () => {
+    if (heartbeatSourceMode === 'upload') {
+      // Toggle for uploaded heartbeat
+      if (previewSound && previewKind === 'heartbeat' && cachedPickedUpload) {
+        stopPreview();
+        return;
+      }
+      previewUploadedHeartbeat();
+    } else {
+      const heartbeatName = heartbeatSelect.value;
+      if (!heartbeatName) return;
+
+      // Toggle: if already playing the same heartbeat, stop it
+      if (previewSound && previewKind === 'heartbeat' && heartbeatSelect.value === heartbeatName) {
+        stopPreview();
+        return;
+      }
+
+      playPreview(heartbeatName, 'heartbeat');
+    }
+  });
+}
 
 console.log('Main.js script loaded completely.');
